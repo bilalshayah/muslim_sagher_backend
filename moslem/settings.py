@@ -27,7 +27,12 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-6-e8d$owx7a(8_@bfigdjlqme-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.railway.app').split(',')
+# Railway automatically provides RAILWAY_PUBLIC_DOMAIN
+railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+if railway_domain:
+    ALLOWED_HOSTS = [railway_domain, 'localhost', '127.0.0.1', '.railway.app']
+else:
+    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.railway.app').split(',')
 
 
 # Application definition
@@ -120,9 +125,17 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = [
-    "https://*.railway.app",
-]
+# Railway automatically provides RAILWAY_PUBLIC_DOMAIN
+railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+if railway_domain:
+    CORS_ALLOWED_ORIGINS = [
+        f"https://{railway_domain}",
+        "https://*.railway.app",
+    ]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "https://*.railway.app",
+    ]
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_HEADERS = True
