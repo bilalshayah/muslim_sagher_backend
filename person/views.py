@@ -7,7 +7,8 @@ from drf_yasg import openapi
 from .models import Person
 from .serializer import PersonSerializer
 from rest_framework.permissions import AllowAny
-
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.hashers import check_password
 class RegisterView(generics.CreateAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
@@ -31,6 +32,7 @@ class RegisterView(generics.CreateAPIView):
 class LoginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+
     @swagger_auto_schema(
         operation_summary="Login",
         operation_description="تسجيل الدخول باستخدام الاسم وكلمة السر",
@@ -52,18 +54,30 @@ class LoginView(APIView):
         name = request.data.get("name")
         password = request.data.get("password")
 
-        try:
-            user = Person.objects.get(name=name, password=password)
-            return Response({
-                "message": "Login successful",
-                "id": user.id,
-                "name": user.name,
-                "role": user.role,
-                "mobile": user.mobile
-            }, status=status.HTTP_200_OK)
+        if not name or not password:
+            return Response({"error": "Please provide name and password"}, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            user = Person.objects.get(name=name)
         except Person.DoesNotExist:
-            return Response(
-                {"error": "Invalid name or password"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid name or password"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # تحقق من كلمة السر
+        if not check_password(password, user.password):
+            return Response({"error": "Invalid name or password"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # توليد التوكن
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        return Response({
+            "message": "Login successful",
+            "id": user.id,
+            "name": user.name,
+            "role": user.role,
+            "mobile": user.mobile,
+            "tokens": {
+                "access": str(access),
+                "refresh": str(refresh)
+            }
+        }, status=status.HTTP_200_OK)
