@@ -6,10 +6,12 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import Person
 from .serializer import PersonSerializer
+from rest_framework.permissions import AllowAny
 
 class RegisterView(generics.CreateAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(
         operation_summary="Register new Person",
