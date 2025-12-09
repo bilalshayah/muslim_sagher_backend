@@ -12,7 +12,7 @@ class RegisterView(generics.CreateAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
     permission_classes = [AllowAny]
-
+    authentication_classes = []
     @swagger_auto_schema(
         operation_summary="Register new Person",
         operation_description="إضافة مستخدم جديد (طفل أو Admin)",
@@ -30,7 +30,7 @@ class RegisterView(generics.CreateAPIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
-
+    authentication_classes = []
     @swagger_auto_schema(
         operation_summary="Login",
         operation_description="تسجيل الدخول باستخدام الاسم وكلمة السر",
