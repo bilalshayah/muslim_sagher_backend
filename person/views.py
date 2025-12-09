@@ -29,6 +29,7 @@ class RegisterView(generics.CreateAPIView):
 
 
 class LoginView(APIView):
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(
         operation_summary="Login",
