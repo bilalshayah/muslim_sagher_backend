@@ -10,4 +10,9 @@ class PersonSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        return Person.objects.create(**validated_data)
+        password = validated_data.pop('password')     # اسحب الباسورد
+        user = Person(**validated_data)               # أنشئ المستخدم
+        user.set_password(password)                   # 🔥 شفر الباسورد هنا
+        user.save()
+        return user
+        
