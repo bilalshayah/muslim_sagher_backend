@@ -9,6 +9,7 @@ from .serializer import PersonSerializer
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import check_password
+from .models import Person
 class RegisterView(generics.CreateAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
@@ -57,24 +58,30 @@ class LoginView(APIView):
             return Response({"error": "Please provide name and password"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = Person.objects.get(name=name)
+            customer = Person.objects.get(name=name)
         except Person.DoesNotExist:
             return Response({"error": "Invalid name or password"}, status=status.HTTP_400_BAD_REQUEST)
 
         # تحقق من كلمة السر
-        if not check_password(password, user.password):
-            return Response({"error": "Invalid name or password"}, status=status.HTTP_400_BAD_REQUEST)
+        if password != customer.password:
+             return Response({"error": "Invalid name or password"}, status=status.HTTP_400_BAD_REQUEST)
 
         # توليد التوكن
-        refresh = RefreshToken.for_user(user)
+        # refresh = RefreshToken.for_user(user)
+        # access = refresh.access_token
+        refresh = RefreshToken()
+        refresh['user_id'] =customer.id
+        refresh['name'] =customer.name
+        refresh['role'] =customer.role
+
         access = refresh.access_token
 
         return Response({
             "message": "Login successful",
-            "id": user.id,
-            "name": user.name,
-            "role": user.role,
-            "mobile": user.mobile,
+            "id": customer.id,
+            "name": customer.name,
+            "role": customer.role,
+            "mobile": customer.mobile,
             "tokens": {
                 "access": str(access),
                 "refresh": str(refresh)

@@ -11,10 +11,11 @@ class PersonSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')     # اسحب الباسورد
-        user = Person(**validated_data)               # أنشئ المستخدم
-        user.set_password(password)                   # 🔥 شفر الباسورد هنا
-        user.save()
-        return user
+        customer = Person(**validated_data)  
+        customer.password = password              # أنشئ المستخدم
+        # user.set_password(password)                   # 🔥 شفر الباسورد هنا
+        customer.save()
+        return customer
 # from rest_framework import serializers
 # from .models import Person
 
