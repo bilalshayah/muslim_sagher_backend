@@ -27,6 +27,7 @@ venv/
 ENV/
 env/
 .myvenv/
+.msenv.*
 
 # Django
 *.log

@@ -1,51 +1,76 @@
 from rest_framework import serializers
-from .models import Person
+from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+import uuid
 
-class PersonSerializer(serializers.ModelSerializer):
+Person = get_user_model()
+
+class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
-        fields = ['id', 'name', 'password', 'mobile', 'role']
+        fields = ['id', 'name', 'mobile', 'password', 'role']
+        read_only_fields = ['id']
         extra_kwargs = {
             'password': {'write_only': True}
         }
 
+    def validate_mobile(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError("رقم الهاتف يجب أن يحتوي على أرقام فقط")
+        if len(value) != 10:
+            raise serializers.ValidationError("رقم الهاتف يجب أن يكون 10 أرقام")
+        if not value.startswith("09"):
+            raise serializers.ValidationError("رقم الهاتف يجب أن يبدأ بـ 09")
+        return value
+
+    def validate(self, data):
+        if Person.objects.filter(name=data['name'], mobile=data['mobile']).exists():
+            raise serializers.ValidationError("هذا الطفل مسجل مسبقًا")
+        return data
+
     def create(self, validated_data):
-        password = validated_data.pop('password')     # اسحب الباسورد
-        customer = Person(**validated_data)  
-        customer.password = password              # أنشئ المستخدم
-        # user.set_password(password)                   # 🔥 شفر الباسورد هنا
-        customer.save()
-        return customer
-# from rest_framework import serializers
-# from .models import Person
+        username = f"user_{uuid.uuid4().hex[:8]}"
 
-# class PersonSerializer(serializers.ModelSerializer):
-#     action = serializers.CharField(write_only=True)  # 'register' أو 'login'
+        user = Person(
+            username=username,
+            name=validated_data['name'],
+            mobile=validated_data['mobile'],
+            role=validated_data['role'],
+        )
+        user.set_password(validated_data['password'])
+        user.save()
 
-#     class Meta:
-#         model = Person
-#         fields = ['id', 'name', 'password', 'mobile', 'role', 'action']
-#         extra_kwargs = {'password': {'write_only': True}}
+        return user
+    
 
-#     def validate(self, data):
-#         action = data.get('action')
-#         name = data.get('name')
-#         password = data.get('password')
+class LoginSerializer(serializers.Serializer):
+    mobile = serializers.CharField()
+    child_name = serializers.CharField()
+    password = serializers.CharField(write_only=True)
 
-#         if action == 'login':
-#             try:
-#                 person = Person.objects.get(name=name)
-#             except Person.DoesNotExist:
-#                 raise serializers.ValidationError("Invalid name or password")
+    def validate(self, data):
+        mobile = data.get('mobile')
+        child_name = data.get('child_name')
+        password = data.get('password')
 
-#             if person.password != password:
-#                 raise serializers.ValidationError("Invalid name or password")
+        try:
+            user = Person.objects.get(mobile=mobile, name=child_name)
+        except Person.DoesNotExist:
+            raise serializers.ValidationError("لا يوجد طفل بهذه المعلومات")
 
-#             data['person'] = person
+        if not user.check_password(password):
+            raise serializers.ValidationError("كلمة المرور غير صحيحة")
 
-#         return data
+        refresh = RefreshToken.for_user(user)
 
-#     def create(self, validated_data):
-#         # إذا التسجيل
-#         validated_data.pop('action', None)
-#         return Person.objects.create(**validated_data)
+        return {
+            "user_id": user.id,
+            "username": user.username,
+            "role": user.role,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+        }
+
+
+
+

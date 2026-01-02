@@ -1,153 +1,97 @@
-from django.shortcuts import render
-from rest_framework import generics, status
+from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import Person
-from .serializer import PersonSerializer
-from rest_framework.permissions import AllowAny
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.hashers import check_password
-from .models import Person
-class RegisterView(generics.CreateAPIView):
+from rest_framework_simplejwt.views import TokenRefreshView
+
+from django.contrib.auth import get_user_model
+from .serializer import RegisterSerializer, LoginSerializer
+
+Person = get_user_model()
+
+
+# -----------------------------
+# Register View
+# -----------------------------
+class RegisterView(CreateAPIView):
     queryset = Person.objects.all()
-    serializer_class = PersonSerializer
-    permission_classes = [AllowAny]
-    authentication_classes = []
+    serializer_class = RegisterSerializer
+
     @swagger_auto_schema(
-        operation_summary="Register new Person",
-        operation_description="إضافة مستخدم جديد (طفل أو Admin)",
-        tags=["Person"],
+        operation_description="إنشاء حساب طفل جديد.",
         responses={
-            201: openapi.Response("User created successfully", PersonSerializer),
-            400: "Validation Error"
+            201: openapi.Response(
+                description="تم إنشاء الحساب بنجاح",
+                schema=RegisterSerializer
+            ),
+            400: "بيانات غير صحيحة"
         }
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
-# Create your views here.
 
+# -----------------------------
+# Login View
+# -----------------------------
 class LoginView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
 
     @swagger_auto_schema(
-        operation_summary="Login",
-        operation_description="تسجيل الدخول باستخدام الاسم وكلمة السر",
-        tags=["Person"],
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            required=['name', 'password'],
-            properties={
-                'name': openapi.Schema(type=openapi.TYPE_STRING, description="اسم المستخدم"),
-                'password': openapi.Schema(type=openapi.TYPE_STRING, description="كلمة المرور"),
-            }
-        ),
+        operation_description="تسجيل دخول طفل باستخدام رقم الهاتف + اسم الطفل + كلمة المرور.",
+        request_body=LoginSerializer,
         responses={
-            200: "Login successful",
-            400: "Invalid name or password"
+            200: openapi.Response(
+                description="تم تسجيل الدخول بنجاح",
+                schema=LoginSerializer
+            ),
+            400: "بيانات غير صحيحة"
         }
     )
     def post(self, request):
-        name = request.data.get("name")
-        password = request.data.get("password")
+        serializer = LoginSerializer(data=request.data)
 
-        if not name or not password:
-            return Response({"error": "Please provide name and password"}, status=status.HTTP_400_BAD_REQUEST)
+        if serializer.is_valid():
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-        try:
-            customer = Person.objects.get(name=name)
-        except Person.DoesNotExist:
-            return Response({"error": "Invalid name or password"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # تحقق من كلمة السر
-        if password != customer.password:
-             return Response({"error": "Invalid name or password"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # توليد التوكن
-        # refresh = RefreshToken.for_user(user)
-        # access = refresh.access_token
-        refresh = RefreshToken()
-        refresh['user_id'] =customer.id
-        refresh['name'] =customer.name
-        refresh['role'] =customer.role
+# -----------------------------
+# Refresh Token View
+# -----------------------------
+class CustomTokenRefreshView(TokenRefreshView):
 
-        access = refresh.access_token
+    @swagger_auto_schema(
+        operation_description="تحديث الـ Access Token باستخدام Refresh Token.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'refresh': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Refresh Token الذي تم الحصول عليه أثناء تسجيل الدخول"
+                ),
+            },
+            required=['refresh']
+        ),
+        responses={
+            200: openapi.Response(
+                description="تم تحديث الـ Access Token بنجاح",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'access': openapi.Schema(type=openapi.TYPE_STRING),
+                    }
+                )
+            ),
+            401: "Refresh Token غير صالح أو منتهي"
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
-        return Response({
-            "message": "Login successful",
-            "id": customer.id,
-            "name": customer.name,
-            "role": customer.role,
-            "mobile": customer.mobile,
-            "tokens": {
-                "access": str(access),
-                "refresh": str(refresh)
-            }
-        }, status=status.HTTP_200_OK)
 
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework import status
-# from rest_framework.permissions import AllowAny
-# from drf_yasg.utils import swagger_auto_schema
-# from drf_yasg import openapi
-# from .models import Person
-# from .serializer import PersonSerializer
-# from rest_framework_simplejwt.tokens import RefreshToken
 
-# class PersonAuthView(APIView):
-#     permission_classes = [AllowAny]
-#     authentication_classes = []
 
-#     @swagger_auto_schema(
-#         operation_summary="Register or Login Person",
-#         operation_description="يمكن التسجيل أو تسجيل الدخول باستخدام نفس الـ endpoint. ضع 'action':'register' أو 'login'",
-#         request_body=PersonSerializer,
-#         responses={
-#             200: openapi.Response(
-#                 description="Success",
-#                 examples={
-#                     "application/json": {
-#                         "id": 1,
-#                         "name": "ali",
-#                         "mobile": "0912345678",
-#                         "role": "customer",
-#                         "token": "jwt_token_here"
-#                     }
-#                 }
-#             ),
-#             400: "Validation Error or Invalid name/password"
-#         }
-#     )
-#     def post(self, request):
-#         serializer = PersonSerializer(data=request.data)
-#         if serializer.is_valid():
-#             action = serializer.validated_data.get('action')
 
-#             if action == 'register':
-#                 person = serializer.save()  # إنشاء الحساب
-#             elif action == 'login':
-#                 person = serializer.validated_data.get('person')  # تم التحقق في validate()
-#             else:
-#                 return Response({"error": "Invalid action, must be 'register' or 'login'"},
-#                                 status=status.HTTP_400_BAD_REQUEST)
-
-#             # توليد توكن JWT
-#             refresh = RefreshToken.for_user(person)
-#             access = refresh.access_token
-
-#             return Response({
-#                 "id": person.id,
-#                 "name": person.name,
-#                 "mobile": person.mobile,
-#                 "role": person.role,
-#                 "tokens": {
-#                     "access": str(access),
-#                     "refresh": str(refresh)
-#                 }
-#             }, status=status.HTTP_200_OK)
-
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

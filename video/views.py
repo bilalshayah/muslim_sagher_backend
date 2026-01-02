@@ -1,98 +1,101 @@
-# from django.shortcuts import render
-# from rest_framework import generics, permissions
-# from .models import Video
-# from .serializer import VideoSerializer,VideoUploadSerializer
-# from drf_yasg.utils import swagger_auto_schema
-# from drf_yasg import openapi
-# from rest_framework.parsers import MultiPartParser, FormParser
-
-
-# class VideoCreateListView(generics.ListCreateAPIView):
-#     queryset = Video.objects.all()
-#     serializer_class = VideoSerializer
-#     permission_classes = [permissions.IsAdminUser]  # فقط الادمن
-#     parser_classes = [MultiPartParser, FormParser]
-
-#     @swagger_auto_schema(
-#         operation_summary="Create a new video for a child",
-#         operation_description="Admin can add a video for a specific child",
-#         request_body=VideoUploadSerializer
-#         # responses={201: VideoSerializer, 400: "Bad Request"},
-#         request_body=openapi.Schema(
-#           type=openapi.TYPE_OBJECT,
-#           required=['child', 'title', 'file'],
-#           properties={
-#              'child': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID للطفل'),
-#              'title': openapi.Schema(type=openapi.TYPE_STRING, description='عنوان الفيديو'),
-#              'file': openapi.Schema(type=openapi.TYPE_FILE, description='ملف الفيديو')
-#     },
-# ),
-#          responses={201: VideoSerializer, 400: "Bad Request"},
-#         tags=['Video Management']
-#     )
-#     def post(self, request, *args, **kwargs):
-#         return super().post(request, *args, **kwargs)
-
-#     @swagger_auto_schema(
-#         operation_summary="List all videos",
-#         operation_description="Get list of all videos",
-#         responses={200: VideoSerializer(many=True)},
-#         tags=['Video Management']
-#     )
-#     def get(self, request, *args, **kwargs):
-#         return super().get(request, *args, **kwargs)
-
-# # Create your views here.
-
-from rest_framework import generics, permissions,status
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema
-from .models import Video,Person
-from .serializer import VideoSerializer, VideoUploadSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.shortcuts import get_object_or_404
+from person.permissions import IsAdmin,IsChild
+from .models import Video
+from .serializer import VideoSerializer
 
-class VideoCreateListView(generics.ListCreateAPIView):
-    queryset = Video.objects.all()
-    serializer_class = VideoSerializer
-    
-    permission_classes = [permissions.IsAuthenticated]  # فقط الادمن
-    parser_classes = [MultiPartParser, FormParser]  # للسماح برفع الملفات
+
+# Swagger
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+
+#إضافة فيديو بواسطة admin ضمن Dashboard
+class VideoCreateView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
 
     @swagger_auto_schema(
-        operation_summary="Create a new video for a child",
-        operation_description="Admin can add a video for a specific child",
-        request_body=VideoUploadSerializer,  # نستخدم السيريالايزر الخاص بالرفع
-        responses={201: VideoSerializer, 400: "Bad Request"},
-        tags=['Video Management']
+        operation_description="إضافة فيديو جديد ",
+        manual_parameters=[
+            openapi.Parameter(
+                'title', openapi.IN_FORM, type=openapi.TYPE_STRING, required=True
+            ),
+            openapi.Parameter(
+                'description', openapi.IN_FORM, type=openapi.TYPE_STRING, required=False
+            ),
+            openapi.Parameter(
+                'is_lock', openapi.IN_FORM, type=openapi.TYPE_BOOLEAN, required=False
+            ),
+            openapi.Parameter(
+                'video', openapi.IN_FORM, type=openapi.TYPE_FILE, required=True
+            ),
+        ],
+        responses={201: VideoSerializer}
     )
-    def post(self, request, *args, **kwargs):
-       
-       child_id = request.data.get('child')
-       if request.user.role != 'admin':
-            return Response({"detail": "You are not admin"}, status=status.HTTP_403_FORBIDDEN)
-       
-       try:
-            child = Person.objects.get(id=child_id)
-       except Person.DoesNotExist:
-            return Response({"detail": "Child not found"}, status=status.HTTP_404_NOT_FOUND)
-
-       if child.role != 'child':
-            return Response({"detail": "Selected user is not a child"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # حفظ الفيديو بعد التأكد من كل شيء
-       serializer = VideoUploadSerializer(data=request.data)
-       if serializer.is_valid():
+    def post(self, request):
+        serializer = VideoSerializer(data=request.data)
+        if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-       return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#تعديل بيانات فيديو (تعديل  حقل واحد أو أكثر )
+class VideoUpdateView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
 
     @swagger_auto_schema(
-        operation_summary="List all videos",
-        operation_description="Get list of all videos",
-        responses={200: VideoSerializer(many=True)},
-        tags=['Video Management']
+        operation_description="تعديل فيديو موجود",
+        manual_parameters=[
+            openapi.Parameter('title', openapi.IN_FORM, type=openapi.TYPE_STRING, required=False),
+            openapi.Parameter('description', openapi.IN_FORM, type=openapi.TYPE_STRING, required=False),
+            openapi.Parameter('is_lock', openapi.IN_FORM, type=openapi.TYPE_BOOLEAN, required=False),
+            openapi.Parameter('video', openapi.IN_FORM, type=openapi.TYPE_FILE, required=False),
+        ],
+        responses={200: VideoSerializer}
     )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-    
-    
+    def put(self, request, pk):
+        video = get_object_or_404(Video, pk=pk)
+        serializer = VideoSerializer(video, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#حذف فيديو ضمن dashboard
+class VideoDeleteView(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+
+    @swagger_auto_schema(
+        operation_description="حذف فيديو",
+        responses={204: "Deleted Successfully"}
+    )
+    def delete(self, request, pk):
+        video = get_object_or_404(Video, pk=pk)
+        video.delete()
+        return Response({"message": "Video deleted"}, status=status.HTTP_204_NO_CONTENT)
+
+
+#إظهار الفيديوهات غير المقفولة للطفل
+class MyVideosView(APIView):
+    permission_classes = [IsAuthenticated,IsChild]
+
+    @swagger_auto_schema(
+        operation_description="عرض الفيديوهات المتاحة للطفل (فقط غير المقفولة)",
+        responses={200: VideoSerializer(many=True)}
+    )
+    def get(self, request):
+
+
+        # جلب الفيديوهات غير المقفولة فقط
+        videos = Video.objects.filter(is_lock=False)
+
+        serializer = VideoSerializer(videos, many=True)
+        return Response(serializer.data)
+
