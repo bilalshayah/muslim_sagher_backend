@@ -44,17 +44,17 @@ class RegisterSerializer(serializers.ModelSerializer):
     
 
 class LoginSerializer(serializers.Serializer):
+    full_name = serializers.CharField()
     mobile = serializers.CharField()
-    name = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        name = data.get('name')
+        full_name = data.get('name')
         mobile = data.get('mobile')
         password = data.get('password')
 
         try:
-            user = Person.objects.get(mobile=mobile, name=name)
+            user = Person.objects.get(mobile=mobile, name=full_name)
         except Person.DoesNotExist:
             raise serializers.ValidationError("لا يوجد مستخدم بهذه المعلومات")
 

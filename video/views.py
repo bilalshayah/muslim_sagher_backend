@@ -10,57 +10,19 @@ from .serializer import VideoSerializer
 
 
 # Swagger
-from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from utils.swagger import auto_swagger
 
-video_data_schema=openapi.Schema(
-                                type=openapi.TYPE_OBJECT,
-                                properties={
-                                    "id": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
-                                    "title": openapi.Schema(type=openapi.TYPE_STRING, example="Video Title"),
-                                    "description": openapi.Schema(type=openapi.TYPE_STRING, example="Video description"),
-                                    "is_lock": openapi.Schema(type=openapi.TYPE_BOOLEAN, example=False),
-                                    "video": openapi.Schema(type=openapi.TYPE_STRING, example="http://example.com/video.mp4"),
-                                }
-                            )
+ #إضافة فيديو بواسطة admin ضمن Dashboard
 
-#إضافة فيديو بواسطة admin ضمن Dashboard
 class VideoCreateView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
     parser_classes = [MultiPartParser, FormParser]
 
-    @swagger_auto_schema(
-        operation_description="إضافة فيديو جديد",
-        manual_parameters=[
-            openapi.Parameter('title', openapi.IN_FORM, type=openapi.TYPE_STRING, required=True),
-            openapi.Parameter('description', openapi.IN_FORM, type=openapi.TYPE_STRING, required=False),
-            openapi.Parameter('is_lock', openapi.IN_FORM, type=openapi.TYPE_BOOLEAN, required=False),
-            openapi.Parameter('video', openapi.IN_FORM, type=openapi.TYPE_FILE, required=True),
-        ],
+    @auto_swagger(
+        description="إضافة فيديو جديد",
         responses={
-            201: openapi.Response(
-                description="تمت إضافة الفيديو بنجاح",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "status": openapi.Schema(type=openapi.TYPE_STRING, example="success"),
-                        "message": openapi.Schema(type=openapi.TYPE_STRING, example="تمت إضافة الفيديو بنجاح"),
-                        "data": video_data_schema
-
-                    }
-                )
-            ),
-            400: openapi.Response(
-                description="بيانات غير صحيحة",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "status": openapi.Schema(type=openapi.TYPE_STRING, example="error"),
-                        "message": openapi.Schema(type=openapi.TYPE_STRING, example="بيانات غير صحيحة"),
-                        "data": openapi.Schema(type=openapi.TYPE_OBJECT)
-                    }
-                )
-            ),
+            201: openapi.Response("تمت إضافة الفيديو بنجاح",VideoSerializer)
         }
     )
     def post(self, request):
@@ -79,42 +41,18 @@ class VideoCreateView(APIView):
             "data": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+
 #تعديل بيانات فيديو (تعديل  حقل واحد أو أكثر )
 class VideoUpdateView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
     parser_classes = [MultiPartParser, FormParser]
 
-    @swagger_auto_schema(
-        operation_description="تعديل فيديو موجود",
-        manual_parameters=[
-            openapi.Parameter('title', openapi.IN_FORM, type=openapi.TYPE_STRING, required=False),
-            openapi.Parameter('description', openapi.IN_FORM, type=openapi.TYPE_STRING, required=False),
-            openapi.Parameter('is_lock', openapi.IN_FORM, type=openapi.TYPE_BOOLEAN, required=False),
-            openapi.Parameter('video', openapi.IN_FORM, type=openapi.TYPE_FILE, required=False),
-        ],
+    @auto_swagger(
+        description="تعديل فيديو موجود",
         responses={
-            200: openapi.Response(
-                description="تم تعديل الفيديو بنجاح",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "status": openapi.Schema(type=openapi.TYPE_STRING, example="success"),
-                        "message": openapi.Schema(type=openapi.TYPE_STRING, example="تم تعديل الفيديو بنجاح"),
-                        "data": video_data_schema
-                    }
-                )
-            ),
-            400: openapi.Response(
-                description="بيانات غير صحيحة",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "status": openapi.Schema(type=openapi.TYPE_STRING, example="error"),
-                        "message": openapi.Schema(type=openapi.TYPE_STRING, example="بيانات غير صحيحة"),
-                        "data": openapi.Schema(type=openapi.TYPE_OBJECT)
-                    }
-                )
-            ),
+            200: openapi.Response("تم تعديل الفيديو بنجاح", VideoSerializer)
         }
     )
     def put(self, request, pk):
@@ -135,25 +73,15 @@ class VideoUpdateView(APIView):
             "data": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+
 #حذف فيديو ضمن dashboard
 class VideoDeleteView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
-    @swagger_auto_schema(
-        operation_description="حذف فيديو",
+    @auto_swagger(
+        description="حذف فيديو",
         responses={
-            200: openapi.Response(
-                description="تم حذف الفيديو بنجاح",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "status": openapi.Schema(type=openapi.TYPE_STRING, example="success"),
-                        "message": openapi.Schema(type=openapi.TYPE_STRING, example="تم حذف الفيديو بنجاح"),
-                        "data":openapi.Schema(type=openapi.TYPE_STRING, example=None)
-
-                    }
-                )
-            )
+            200: openapi.Response("تم حذف الفيديو بنجاح", openapi.Schema(type=openapi.TYPE_STRING, example=None))
         }
     )
     def delete(self, request, pk):
@@ -171,21 +99,10 @@ class VideoDeleteView(APIView):
 class MyVideosView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @swagger_auto_schema(
-        operation_description="عرض الفيديوهات المتاحة للطفل (فقط غير المقفولة)",
+    @auto_swagger(
+        description="عرض الفيديوهات المتاحة(فقط غير المقفولة)",
         responses={
-            200: openapi.Response(
-                description="تم جلب الفيديوهات بنجاح",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "status": openapi.Schema(type=openapi.TYPE_STRING, example="success"),
-                        "message": openapi.Schema(type=openapi.TYPE_STRING, example="تم جلب الفيديوهات بنجاح"),
-                        "data": video_data_schema
-
-                    }
-                )
-            )
+            200: openapi.Response("تم جلب الفيديوهات بنجاح", VideoSerializer(many=True))
         }
     )
     def get(self, request):
