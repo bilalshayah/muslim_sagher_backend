@@ -45,18 +45,18 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.Serializer):
     mobile = serializers.CharField()
-    child_name = serializers.CharField()
+    name = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
+        name = data.get('name')
         mobile = data.get('mobile')
-        child_name = data.get('child_name')
         password = data.get('password')
 
         try:
-            user = Person.objects.get(mobile=mobile, name=child_name)
+            user = Person.objects.get(mobile=mobile, name=name)
         except Person.DoesNotExist:
-            raise serializers.ValidationError("لا يوجد طفل بهذه المعلومات")
+            raise serializers.ValidationError("لا يوجد مستخدم بهذه المعلومات")
 
         if not user.check_password(password):
             raise serializers.ValidationError("كلمة المرور غير صحيحة")
