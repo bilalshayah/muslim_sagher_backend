@@ -49,7 +49,7 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        full_name = data.get('name')
+        full_name = data.get('full_name')
         mobile = data.get('mobile')
         password = data.get('password')
 
