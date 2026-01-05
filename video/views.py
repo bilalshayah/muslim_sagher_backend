@@ -21,6 +21,7 @@ class VideoCreateView(APIView):
 
     @auto_swagger(
         description="إضافة فيديو جديد",
+        request_body=VideoSerializer,
         responses={
             201: openapi.Response("تمت إضافة الفيديو بنجاح",VideoSerializer)
         }
@@ -51,6 +52,7 @@ class VideoUpdateView(APIView):
 
     @auto_swagger(
         description="تعديل فيديو موجود",
+        request_body=VideoSerializer,
         responses={
             200: openapi.Response("تم تعديل الفيديو بنجاح", VideoSerializer)
         }
@@ -79,10 +81,11 @@ class VideoDeleteView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     @auto_swagger(
-        description="حذف فيديو",
-        responses={
-            200: openapi.Response("تم حذف الفيديو بنجاح", openapi.Schema(type=openapi.TYPE_STRING, example=None))
-        }
+    description="حذف فيديو عبر ID",
+     responses={
+        200: openapi.Response("تم حذف الفيديو بنجاح")
+    }
+
     )
     def delete(self, request, pk):
         video = get_object_or_404(Video, pk=pk)
