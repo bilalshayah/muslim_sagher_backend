@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'corsheaders',  # CORS support
     'person',
     'video',
+    'quiz',
 ]
 
 MIDDLEWARE = [

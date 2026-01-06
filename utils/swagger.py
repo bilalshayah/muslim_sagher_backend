@@ -43,15 +43,17 @@ def auto_swagger(description=None, request_body=None, responses=None):
     """
     final_responses = DEFAULT_RESPONSES.copy()
 
-    # إذا احتجتِ تخصيص API معين
     if responses:
         final_responses.update(responses)
 
+    
     return swagger_auto_schema(
-        operation_description=description,
-        request_body=request_body,
-        responses=final_responses
-    )
+    operation_description=description,
+    request_body=request_body,
+    responses=final_responses    
+)
+
+
 
 
 

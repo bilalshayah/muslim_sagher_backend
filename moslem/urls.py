@@ -40,6 +40,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/video/', include('video.url')),
     path('api/persons/', include('person.url')),
+    path('api/quiz/', include('quiz.urls')),
+
     
     # Swagger/Redoc URLs
 path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
