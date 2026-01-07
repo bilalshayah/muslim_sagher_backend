@@ -26,12 +26,12 @@ urlpatterns = [
     # -----------------------------------------------------
 
     # Questions CRUD
-    path("dashboard/questions/create/", QuestionCreateView.as_view(), name="question-create"),
-    path("dashboard/questions/<int:pk>/", QuestionDetailView.as_view(), name="question-detail"),
+    path("admin/questions/create/", QuestionCreateView.as_view(), name="question-create"),
+    path("admin/questions/<int:pk>/", QuestionDetailView.as_view(), name="question-detail"),
 
     # Answer Choices CRUD
-    path("dashboard/choices/create/", AnswerChoiceCreateView.as_view(), name="choice-create"),
-    path("dashboard/choices/<int:pk>/", AnswerChoiceDetailView.as_view(), name="choice-detail"),
+    path("admin/choices/create/", AnswerChoiceCreateView.as_view(), name="choice-create"),
+    path("admin/choices/<int:pk>/", AnswerChoiceDetailView.as_view(), name="choice-detail"),
 
     # Answer And Choices And Correct Choice CURD
     path("admin/videos/<int:video_id>/questions/", AdminVideoQuestionsView.as_view()),
