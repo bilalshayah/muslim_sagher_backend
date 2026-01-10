@@ -4,11 +4,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenRefreshView
-
+import uuid
 from utils.swagger import auto_swagger
 
 from django.contrib.auth import get_user_model
-from .serializer import RegisterSerializer, LoginSerializer
+from .serializer import RegisterSerializer, LoginSerializer,ForgotPasswordSerializer,ResetPasswordSerializer
 
 Person = get_user_model()
 
@@ -98,3 +98,121 @@ class CustomTokenRefreshView(TokenRefreshView):
             "message": "Refresh Token غير صالح أو منتهي",
             "data": response.data
         }, status=response.status_code)
+
+
+class ForgotPasswordView(APIView):
+    @auto_swagger(
+        description= "طلب استعادة تعيين كلمة السر بعد التحقق من اسم المستخدم ورقم الهاتف",
+        request_body=ForgotPasswordSerializer,
+        
+    )
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+
+        if serializer.is_valid():
+
+            reset_token = str(uuid.uuid4())
+
+        # تخزين التوكن في session
+            request.session["reset_token"] = reset_token
+            request.session["reset_user"] = serializer.validated_data["name"]
+            request.session["reset_user_mobile"] = serializer.validated_data["mobile"]
+
+            return Response({
+                "status": "success",
+                "message": "يمكنك الآن إدخال كلمة السر الجديدة",
+                "data": {"reset_token": reset_token}
+            }, status=200)
+        return Response({
+            "status": "error",
+            "message": "بيانات غير صحيحة",
+            "data": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class ForgotPasswordView(APIView):
+
+    @auto_swagger(
+        description="طلب استعادة كلمة المرور عبر التحقق من الاسم ورقم الهاتف",
+        request_body=ForgotPasswordSerializer
+    )
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+
+        if serializer.is_valid():
+            # إنشاء reset token
+           
+
+            # تخزين التوكن في الـ session
+            request.session["reset_allowed"] = True
+            request.session["reset_name"] = serializer.validated_data["name"]
+            request.session["reset_mobile"] = serializer.validated_data["mobile"]
+
+            return Response({
+                "status": "success",
+                "message": "تم التحقق من البيانات ويمكنك الآن إدخال كلمة السر الجديدة",
+                "data": {}
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "status": "error",
+            "message": "بيانات غير صحيحة",
+            "data": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+class ResetPassowrdView(APIView):
+    @auto_swagger(
+        description="تغيير كلمة السر باستخدام reset_token",
+        request_body=ResetPasswordSerializer
+    )
+    def post(self,request):
+        
+        if not request.session.get("reset_allowed"):
+            return Response({
+                "status": "error",
+                "message": "لا يوجد طلب استعادة كلمة مرور فعال",
+                "data": {}
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = ResetPasswordSerializer(data=request.data)
+
+        if serializer.is_valid():
+            name = request.session.get("reset_name")
+            mobile = request.session.get("reset_mobile")
+
+            try:
+                user = Person.objects.get(name=name, mobile=mobile)
+            except Person.DoesNotExist:
+                return Response({
+                    "status": "error",
+                    "message": "المستخدم غير موجود",
+                    "data": {}
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # تغيير كلمة السر
+            user.set_password(serializer.validated_data["new_password"])
+            user.save()
+
+            # حذف حالة الاستعادة من الـ session
+            request.session.pop("reset_allowed", None)
+            request.session.pop("reset_name", None)
+            request.session.pop("reset_mobile", None)
+
+            return Response({
+                "status": "success",
+                "message": "تم تغيير كلمة السر بنجاح",
+                "data": {}
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "status": "error",
+            "message": "بيانات غير صحيحة",
+            "data": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+            
+
+

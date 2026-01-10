@@ -54,3 +54,5 @@ class QuizResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserQuizAttempt
         fields = ["id", "video", "score", "completed"]
+
+

@@ -31,3 +31,5 @@ class UserQuizAttempt(models.Model):
 
     class Meta:
         unique_together = ("user", "video")
+
+

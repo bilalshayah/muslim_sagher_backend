@@ -72,5 +72,29 @@ class LoginSerializer(serializers.Serializer):
         }
 
 
+class ForgotPasswordSerializer(serializers.Serializer):
+    name=serializers.CharField()
+    mobile=serializers.CharField()
 
+    def validate(self,data):
+        name=data["name"]
+        mobile=data["mobile"]
+        
+        if not Person.objects.filter(name=name,mobile=mobile).exists():
+            raise serializers.ValidationError("لا يوجد مستخدم بهذه البيانات")
+
+        return data
+    
+class ResetPasswordSerializer(serializers.Serializer):
+
+    new_password=serializers.CharField()
+    confirm_password=serializers.CharField()
+
+    def validate(self,data):
+        
+
+        if data["new_password"] != data["confirm_password"]:
+            raise serializers.ValidationError("كلمتا السر غير متطابقتين")
+        
+        return data
 
