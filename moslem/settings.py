@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'person',
     'video',
     'quiz',
+    'azkar',
 ]
 
 MIDDLEWARE = [
