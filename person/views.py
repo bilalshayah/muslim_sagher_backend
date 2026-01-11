@@ -4,11 +4,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from utils.swagger import auto_swagger
+from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth import get_user_model
-from .serializer import RegisterSerializer, LoginSerializer,ForgotPasswordSerializer,ResetPasswordSerializer
+from .serializer import RegisterSerializer, LoginSerializer,ForgotPasswordSerializer,ResetPasswordSerializer,ProfileSerializer,ProfileUpdateSerializer
 
 Person = get_user_model()
 
@@ -211,8 +213,72 @@ class ResetPassowrdView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
+class ProfileView(APIView):
+    permission_classes=[IsAuthenticated]
 
+    @auto_swagger(
+        description="عرض بيانات البروفايل",
+        responses={200:ProfileSerializer}   
+    )
+    def get(self,request):
+        serializer=ProfileSerializer(request.user)
+        return Response({
+            "status":"success",
+            "message":"تم جلب بيانات البروفايل",
+            "data":serializer.data,
+            },status=status.HTTP_200_OK
+        )
 
-            
+class ProfileUpdateView(APIView):
+    permission_classes=[IsAuthenticated]
 
+    @auto_swagger(
+        description="تعديل بيانات البروفايل",
+        request_body=ProfileUpdateSerializer,
+        responses={200:ProfileSerializer}
+    ) 
+    def put(self,request):
+        serializer=ProfileUpdateSerializer(request.user,request.data,partial=True)     
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "status":"success",
+                "message":"تم تعديل بيانات البروفايل",
+                "data":serializer.data}
+            ,status=status.HTTP_200_OK)
+        return Response({
+            "status":"error",
+            "message":"بيانات غير صحيحة",
+            "data":serializer.errors
+        },status=status.HTTP_400_BAD_REQUEST)
 
+class LogoutView(APIView):
+    permission_classes=[IsAuthenticated]
+
+    @auto_swagger(
+        description="تسجيل خروج المستخدم",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"refresh":openapi.Schema(type=openapi.TYPE_STRING)},
+            required=['refresh']
+        ))
+    
+    def post(self,request):
+        try:
+            refresh_token=request.data.get("refresh")
+            token=RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response({
+                "status":"success",
+                "message":"تم تسجيل الخروج بنجاح",
+                "data":{}
+            },status=status.HTTP_200_OK)
+        except:
+            return Response({
+                "status":"error",
+                "message":"Refresh Token غير صالح",
+                "data":{}
+            },status=status.HTTP_400_BAD_REQUEST)
+
+    

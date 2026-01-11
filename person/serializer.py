@@ -6,9 +6,14 @@ import uuid
 Person = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
+    father_name = serializers.CharField(required=False, allow_blank=True)
+    mother_name = serializers.CharField(required=False, allow_blank=True)
+    birth_date = serializers.DateField(required=False)
+    email = serializers.EmailField(required=False, allow_blank=True)
+
     class Meta:
         model = Person
-        fields = ['id', 'name', 'mobile', 'password', 'role']
+        fields = ['id', 'name', 'mobile', 'password', 'role','email','father_name','mother_name','birth_date']
         read_only_fields = ['id']
         extra_kwargs = {
             'password': {'write_only': True}
@@ -36,6 +41,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             name=validated_data['name'],
             mobile=validated_data['mobile'],
             role=validated_data['role'],
+            father_name=validated_data['father_name'],
+            mother_name=validated_data['mother_name'],
+            email=validated_data['email'],
+            birth_date=validated_data['birth_date']
+
         )
         user.set_password(validated_data['password'])
         user.save()
@@ -98,3 +108,24 @@ class ResetPasswordSerializer(serializers.Serializer):
         
         return data
 
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Person
+        fields=['id','name','mobile','father_name','mother_name','email','birth_date']
+        read_only_fields=['id']
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Person
+        fields = [
+            "email",
+            "father_name",
+            "mother_name",
+            "birth_date",
+        ]
+        extra_kwargs = {
+            "email": {"required": False},
+            "father_name": {"required": False},
+            "mother_name": {"required": False},
+            "birth_date": {"required": False},
+        }
