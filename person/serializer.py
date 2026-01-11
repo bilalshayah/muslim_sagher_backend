@@ -41,10 +41,10 @@ class RegisterSerializer(serializers.ModelSerializer):
             name=validated_data['name'],
             mobile=validated_data['mobile'],
             role=validated_data['role'],
-            father_name=validated_data['father_name'],
-            mother_name=validated_data['mother_name'],
-            email=validated_data['email'],
-            birth_date=validated_data['birth_date']
+            father_name=validated_data.get('father_name'),
+            mother_name=validated_data.get('mother_name'),
+            email=validated_data.get('email'),
+            birth_date=validated_data.get('birth_date')
 
         )
         user.set_password(validated_data['password'])
