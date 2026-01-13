@@ -41,7 +41,7 @@ urlpatterns = [
     path('api/video/', include('video.url')),
     path('api/persons/', include('person.url')),
     path('api/quiz/', include('quiz.urls')),
-    path('api/azkar/', include('azkar.urls')),
+    path('api/azkar-category/', include('azkar.urls')),
 
     
     
