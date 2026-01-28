@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from utils.swagger import auto_swagger
 from person.permissions import IsAdmin
 
+from points.models import UserPoints
 from .models import Question, AnswerChoice, UserQuizAttempt
 from .serializers import (
     QuestionSerializer,
@@ -55,6 +56,7 @@ class SubmitQuizView(APIView):
         request_body=SubmitQuizSerializer
     )
     def post(self, request, video_id):
+
         # منع إعادة الاختبار
         if UserQuizAttempt.objects.filter(user=request.user, video_id=video_id).exists():
             return Response({
@@ -67,7 +69,21 @@ class SubmitQuizView(APIView):
         serializer.is_valid(raise_exception=True)
 
         answers = serializer.validated_data["answers"]
-        score = 0
+
+        # عدد أسئلة الفيديو
+        questions_count = Question.objects.filter(video_id=video_id).count()
+
+        if questions_count == 0:
+            return Response({
+                "status": "error",
+                "message": "لا يوجد أسئلة لهذا الفيديو",
+                "data": None
+            }, status=400)
+
+        # قيمة النقطة الواحدة
+        point_value = 10 / questions_count
+
+        correct_answers = 0
         detailed_results = []
 
         for ans in answers:
@@ -79,7 +95,7 @@ class SubmitQuizView(APIView):
                 is_correct = choice.is_correct
 
                 if is_correct:
-                    score += 2
+                    correct_answers += 1
 
                 detailed_results.append({
                     "question_id": q_id,
@@ -94,6 +110,19 @@ class SubmitQuizView(APIView):
                     "is_correct": False
                 })
 
+        # حساب النقاط النهائية
+        score = correct_answers * point_value
+
+        # شرط النجاح: يجب أن تكون النقاط 6 أو أكثر
+        points_added = 0
+        if score >= 6:
+            points_added = score
+
+            # إضافة النقاط الكلية
+            user_points, _ = UserPoints.objects.get_or_create(user=request.user)
+            user_points.total_points += points_added
+            user_points.save()
+
         # حفظ المحاولة
         UserQuizAttempt.objects.create(
             user=request.user,
@@ -101,14 +130,17 @@ class SubmitQuizView(APIView):
             score=score,
             completed=True
         )
+
         return Response({
-        "status": "success",
-        "message": "تم إرسال الإجابات وحساب النتيجة",
-        "data": {
-        "score": score,
-        "details": detailed_results
-    }
-}, status=200)
+            "status": "success",
+            "message": "تم إرسال الإجابات وحساب النتيجة",
+            "data": {
+                "correct_answers": correct_answers,
+                "score": round(score, 2),
+                "points_added": round(points_added, 2),
+                "details": detailed_results
+            }
+        }, status=200)
 
        
 
