@@ -37,12 +37,34 @@ def get_today_activity(user):
 
 
 # ----------------------------------------------------
-# إضافة نقاط للرصيد الكلي
+# و فتح الجوائز الجديدةإضافة نقاط للرصيد الكلي
 # ----------------------------------------------------
+# from .models import Reward, UserReward, UserPoints
+
+# def check_and_unlock_rewards(user):
+#     user_points, _ = UserPoints.objects.get_or_create(user=user)
+#     total = user_points.total_points
+
+#     rewards = Reward.objects.all()
+#     unlocked_now = []
+
+#     for reward in rewards:
+#         if total >= reward.required_points:
+#             exists = UserReward.objects.filter(user=user, reward=reward).exists()
+#             if not exists:
+#                 UserReward.objects.create(user=user, reward=reward)
+#                 unlocked_now.append(reward)
+
+#     return unlocked_now
+
 def add_points(user, points):
     user_points, _ = UserPoints.objects.get_or_create(user=user)
     user_points.total_points += points
     user_points.save()
+    
+    # new_rewards = check_and_unlock_rewards(user)
+    # return new_rewards
+
 
 
 # ----------------------------------------------------
@@ -67,8 +89,9 @@ def mark_prayer(user, prayer_name):
     activity.daily_points += PRAYER_POINTS
     activity.save()
 
+    # new_rewards = 
     add_points(user, PRAYER_POINTS)
-    return activity, PRAYER_POINTS
+    return activity, PRAYER_POINTS#,new_rewards
 
 
 # ----------------------------------------------------
@@ -88,8 +111,9 @@ def mark_fasting(user):
     activity.daily_points += FASTING_POINTS
     activity.save()
 
+    # new_rewards=
     add_points(user, FASTING_POINTS)
-    return activity, FASTING_POINTS
+    return activity, FASTING_POINTS#,new_rewards
 
 
 # ----------------------------------------------------
@@ -111,8 +135,9 @@ def mark_sunnah(user, sunnah_name):
     activity.daily_points += SUNNAH_POINTS
     activity.save()
 
+    # new_rewards=
     add_points(user, SUNNAH_POINTS)
-    return activity, SUNNAH_POINTS
+    return activity, SUNNAH_POINTS#,new_rewards
 
 
 # ----------------------------------------------------
@@ -131,8 +156,9 @@ def mark_taraweeh(user):
     activity.daily_points += TARAWEEH_POINTS
     activity.save()
 
+    # new_rewards=
     add_points(user, TARAWEEH_POINTS)
-    return activity, TARAWEEH_POINTS
+    return activity, TARAWEEH_POINTS#,new_rewards
 # ----------------------------------------------------
 # تسجيل الأذكار
 # ----------------------------------------------------
@@ -171,9 +197,10 @@ def mark_azkar(user, category_id):
     activity.save()
 
     # إضافة النقاط للمستخدم
+    #new_rewards=
     add_points(user, POINTS)
 
-    return activity, POINTS
+    return activity, POINTS#,new_rewards
 # ----------------------------------------------------
 # تسجيل القرآن والختمات
 # ----------------------------------------------------
@@ -225,7 +252,9 @@ def mark_quran_reading(user, pages):
     user_points.total_points += pages + reward
     user_points.save()
 
-    return activity, progress, pages, reward
+    #new_rewards = check_and_unlock_rewards(user)
+
+    return activity, progress, pages, reward#,new_rewards
 # ----------------------------------------------------
 # تفصيل النقاط 
 # ----------------------------------------------------
@@ -294,3 +323,4 @@ def get_points_summary(user):
             "azkar": azkar_points,
         }
     }
+
