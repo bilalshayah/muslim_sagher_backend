@@ -34,7 +34,8 @@ class DailyActivity(models.Model):
     
 
     daily_points = models.IntegerField(default=0)
-
+    class Meta:
+        unique_together = ('user', 'date')
     def __str__(self):
         return f"{self.user.username} - {self.date}"
     
@@ -43,8 +44,7 @@ class UserPoints(models.Model):
     total_points = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
 
-class Meta:
-    unique_together = ('user', 'date')
+
     def __str__(self):
         return f"{self.user.username} - {self.total_points} points"
     
@@ -69,3 +69,32 @@ class QuranProgress(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.completed_khatmas} ختمات"
+    
+
+# class Reward(models.Model):
+#     REWARD_TYPES = [
+#         ("video", "Short Video"),
+#         ("sticker", "Sticker"),
+#         ("badge", "Badge"),
+#         ("video_pack", "Video Pack"),
+#     ]
+
+#     type = models.CharField(max_length=20, choices=REWARD_TYPES)
+#     required_points = models.IntegerField()
+#     title = models.CharField(max_length=100)
+#     description = models.TextField(blank=True)
+
+#     def __str__(self):
+#         return f"{self.title} ({self.required_points} pts)"
+
+
+# class UserReward(models.Model):
+#     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+#     reward = models.ForeignKey(Reward, on_delete=models.CASCADE)
+#     unlocked_at = models.DateTimeField(auto_now_add=True)
+
+#     class Meta:
+#         unique_together = ("user", "reward")
+
+#     def __str__(self):
+#         return f"{self.user.username} unlocked {self.reward.title}"
