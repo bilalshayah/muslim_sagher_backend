@@ -228,11 +228,38 @@ class AzkarMarkView(APIView):
 class QuranReadView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @auto_swagger(
+        description="تسجيل عدد الصفحات التي قرأها المستخدم من القرآن",
+        request_body=openapi.Schema(
+    type=openapi.TYPE_OBJECT,
+    required=["pages"],
+    properties={
+        "pages": openapi.Schema(
+            type=openapi.TYPE_INTEGER,
+            example=5,
+            description="عدد الصفحات التي قرأها المستخدم"
+        )
+    }
+)
+    )
     def post(self, request):
-        pages = int(request.data.get("pages", 0))
+        pages = request.data.get("pages")
+
+        try:
+            pages = int(pages)
+        except (TypeError, ValueError):
+            return Response({
+                "status": "error",
+                "message": "عدد الصفحات يجب أن يكون رقمًا",
+                "data": {}
+            }, status=400)
 
         if pages <= 0:
-            return Response({"error": "عدد الصفحات غير صالح"}, status=400)
+            return Response({
+                "status": "error",
+                "message": "عدد الصفحات غير صالح",
+                "data": {}
+            }, status=400)
 
         activity, progress, added, reward = mark_quran_reading(request.user, pages)
 
@@ -243,6 +270,7 @@ class QuranReadView(APIView):
             "message": "تم تسجيل قراءة القرآن",
             "data": {
                 "added_pages": added,
+                "added_points":added,
                 "today_pages": activity.quran_pages,
                 "total_pages_read": progress.total_pages_read,
                 "completed_khatmas": progress.completed_khatmas,
@@ -250,7 +278,6 @@ class QuranReadView(APIView):
                 "reward": reward
             }
         })
-    
 
 class QuranProgressView(APIView):
     permission_classes = [IsAuthenticated]
