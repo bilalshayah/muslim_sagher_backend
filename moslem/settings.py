@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_yasg',  # Swagger/OpenAPI documentation
     'corsheaders',  # CORS support
-    'django_crontab',
     'person',
     'video',
     'quiz',
@@ -57,10 +56,7 @@ INSTALLED_APPS = [
     'points',
 ]
 
-CRONJOBS = [
-    # كل يوم الساعة 12 منتصف الليل
-    ('0 0 * * *', 'app.tasks.start_new_day_task'),
-]
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # CORS middleware first
