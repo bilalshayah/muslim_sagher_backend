@@ -4,66 +4,87 @@
 
 from django.db import transaction
 from django.utils import timezone
-from .models import DailyActivity, UserPoints,DailyAzkarStatus,AzkarCategory,QuranProgress
+from .models import DailyActivity, UserPoints,DailyAzkarStatus,AzkarCategory,QuranProgress,OfflinePointEvent
 from .prayer_utils import is_within_prayer_time
 
 
 # ----------------------------------------------------
 # جلب أو إنشاء سجل اليوم الحالي
 # ----------------------------------------------------
+from django.utils import timezone
+from django.db import transaction
+from .models import DailyActivity, DailyAzkarStatus, AzkarCategory
+
+
 def get_today_activity(user):
+    """
+    ترجع سجل اليوم الحالي.
+    - تعتمد على cron كخيار أساسي
+    - تعمل fallback فقط إذا لم يوجد سجل (مثلاً لو السيرفر كان طافي)
+    """
+
     today = timezone.localdate()
-    activity, created = DailyActivity.objects.get_or_create(
+
+    activity = DailyActivity.objects.filter(
         user=user,
-        date=today,
-        defaults={
-            "fajr": False, "dhuhr": False, "asr": False, "maghrib": False, "isha": False,
-            "taraweeh": False, "fasting": False,
-            "sunnah_fajr": False, "sunnah_dhuhr": False,
-            "sunnah_maghrib": False, "sunnah_isha": False,
-            "quran_pages": 0,
-            "daily_points": 0,
-        }
-    )
-    if created or activity.azkar_status.count() == 0:
-        for category in AzkarCategory.objects.all():
-            DailyAzkarStatus.objects.get_or_create(
+        date=today
+    ).first()
+
+    if activity:
+        return activity
+
+    # 🔁 Fallback واضح ومقصود
+    with transaction.atomic():
+        activity = DailyActivity.objects.create(
+            user=user,
+            date=today,
+            fajr=False,
+            dhuhr=False,
+            asr=False,
+            maghrib=False,
+            isha=False,
+            taraweeh=False,
+            fasting=False,
+            sunnah_fajr=False,
+            sunnah_dhuhr=False,
+            sunnah_maghrib=False,
+            sunnah_isha=False,
+            quran_pages=0,
+            daily_points=0,
+        )
+
+        # إنشاء حالات الأذكار لليوم
+        categories = AzkarCategory.objects.all()
+        DailyAzkarStatus.objects.bulk_create([
+            DailyAzkarStatus(
                 activity=activity,
                 category=category,
-                defaults={"done": False}
+                done=False
             )
+            for category in categories
+        ])
 
     return activity
 
 
+
 # ----------------------------------------------------
-# و فتح الجوائز الجديدةإضافة نقاط للرصيد الكلي
+# إضافة نقاط للرصيد الكلي
 # ----------------------------------------------------
-# from .models import Reward, UserReward, UserPoints
 
-# def check_and_unlock_rewards(user):
-#     user_points, _ = UserPoints.objects.get_or_create(user=user)
-#     total = user_points.total_points
+@transaction.atomic
+def add_points(user, points: int):
+    if points <= 0:
+        return
 
-#     rewards = Reward.objects.all()
-#     unlocked_now = []
+    user_points, _ = UserPoints.objects.select_for_update().get_or_create(
+        user=user
+    )
 
-#     for reward in rewards:
-#         if total >= reward.required_points:
-#             exists = UserReward.objects.filter(user=user, reward=reward).exists()
-#             if not exists:
-#                 UserReward.objects.create(user=user, reward=reward)
-#                 unlocked_now.append(reward)
-
-#     return unlocked_now
-
-def add_points(user, points):
-    user_points, _ = UserPoints.objects.get_or_create(user=user)
-    user_points.total_points += points
+    user_points.total_points += int(points)
     user_points.save()
-    
-    # new_rewards = check_and_unlock_rewards(user)
-    # return new_rewards
+
+    return user_points.total_points
 
 
 
@@ -171,10 +192,7 @@ def mark_azkar(user, category_id):
     today = timezone.localdate()
 
     # DailyActivity لليوم
-    activity, _ = DailyActivity.objects.get_or_create(
-        user=user,
-        date=today
-    )
+    activity = get_today_activity(user)
 
     # DailyAzkarStatus للفئة المطلوبة
     status, created = DailyAzkarStatus.objects.get_or_create(
@@ -211,11 +229,7 @@ def mark_quran_reading(user, pages):
     today = timezone.localdate()
 
     # سجل اليوم
-    activity, _ = DailyActivity.objects.get_or_create(
-        user=user,
-        date=today,
-        defaults={"quran_pages": 0}
-    )
+    activity = get_today_activity(user)
 
     # تحديث صفحات اليوم
     activity.quran_pages += pages
@@ -248,9 +262,7 @@ def mark_quran_reading(user, pages):
     progress.save()
 
     # تحديث النقاط الكلية
-    user_points, _ = UserPoints.objects.get_or_create(user=user)
-    user_points.total_points += pages + reward
-    user_points.save()
+    add_points(user,pages+reward)
 
     #new_rewards = check_and_unlock_rewards(user)
 
@@ -258,15 +270,13 @@ def mark_quran_reading(user, pages):
 # ----------------------------------------------------
 # تفصيل النقاط 
 # ----------------------------------------------------
-from .models import DailyActivity, UserPoints
+# points/services.py
+
+from .models import DailyActivity, UserPoints, OfflinePointEvent
 
 def get_points_summary(user):
-    """
-    خدمة لحساب النقاط الكلية + تفصيل النقاط حسب النشاط.
-    لا تُرجع أي تفاصيل يومية، فقط مجموع النقاط.
-    """
-
     activities = DailyActivity.objects.filter(user=user)
+    offline_events = OfflinePointEvent.objects.filter(user=user)
 
     prayers_points = 0
     sunnah_points = 0
@@ -275,11 +285,12 @@ def get_points_summary(user):
     quran_points = 0
     azkar_points = 0
 
+    # -------- online (DailyActivity) --------
     for a in activities:
-        # الصلوات الخمس
-        prayers_points += (a.fajr + a.dhuhr + a.asr + a.maghrib + a.isha) * 2
+        prayers_points += (
+            a.fajr + a.dhuhr + a.asr + a.maghrib + a.isha
+        ) * 2
 
-        # السنن
         sunnah_points += (
             a.sunnah_fajr +
             a.sunnah_dhuhr +
@@ -287,40 +298,177 @@ def get_points_summary(user):
             a.sunnah_isha
         ) * 1
 
-        # الصيام
         fasting_points += 3 if a.fasting else 0
-
-        # التراويح
         taraweeh_points += 5 if a.taraweeh else 0
-
-        # القرآن
-        quran_points += a.quran_pages * 1
-
-        # الأذكار
+        quran_points += a.quran_pages
         azkar_points += a.azkar_status.filter(done=True).count() * 2
 
-    # إجمالي النقاط من DailyActivity
-    total_from_activities = (
-        prayers_points +
-        sunnah_points +
-        fasting_points +
-        taraweeh_points +
-        quran_points +
-        azkar_points
-    )
+    # -------- offline --------
+    offline_breakdown = {
+        "prayers": 0,
+        "sunnah": 0,
+        "fasting": 0,
+        "taraweeh": 0,
+        "quran": 0,
+        "azkar": 0,
+    }
 
-    # النقاط الكلية من UserPoints
+    for e in offline_events:
+        offline_breakdown[e.event_type] += e.points
+
+    # -------- totals --------
     user_points, _ = UserPoints.objects.get_or_create(user=user)
 
     return {
         "total_points": user_points.total_points,
         "breakdown": {
-            "prayers": prayers_points,
-            "sunnah": sunnah_points,
-            "fasting": fasting_points,
-            "taraweeh": taraweeh_points,
-            "quran": quran_points,
-            "azkar": azkar_points,
+            "prayers": prayers_points + offline_breakdown["prayers"],
+            "sunnah": sunnah_points + offline_breakdown["sunnah"],
+            "fasting": fasting_points + offline_breakdown["fasting"],
+            "taraweeh": taraweeh_points + offline_breakdown["taraweeh"],
+            "quran": quran_points + offline_breakdown["quran"],
+            "azkar": azkar_points + offline_breakdown["azkar"],
         }
     }
 
+
+#---------------------------------------------------------
+#نظام خاص بالمكافآت
+#---------------------------------------------------------
+from .models import UserReward
+
+def user_owns_video(user, video_id):
+    return UserReward.objects.filter(
+        user=user,
+        reward__video_id=video_id
+    ).exists()
+
+
+from .models import Reward, UserReward, UserPoints
+
+
+def get_rewards_status_for_user(user):
+    """
+    ترجع جميع المكافآت مع حالتها بالنسبة للمستخدم:
+    - owned
+    - able
+    - disabled
+    """
+
+    user_points, _ = UserPoints.objects.get_or_create(user=user)
+    owned_rewards_ids = set(
+        UserReward.objects.filter(user=user)
+        .values_list("reward_id", flat=True)
+    )
+
+    rewards = Reward.objects.filter(is_active=True)
+
+    result = []
+
+    for reward in rewards:
+        if reward.id in owned_rewards_ids:
+            status = "owned"
+        elif user_points.total_points >= reward.cost_points:
+            status = "able"
+        else:
+            status = "disabled"
+
+        result.append({
+            "id": reward.id,
+            "title": reward.title,
+            "type": reward.type,
+            "cost_points": reward.cost_points,
+            "status": status,
+        })
+
+    return result
+
+
+
+@transaction.atomic
+def unlock_reward_for_user(user, reward_id):
+    reward = Reward.objects.select_for_update().get(
+        id=reward_id,
+        is_active=True
+    )
+
+    user_points = UserPoints.objects.select_for_update().get(user=user)
+
+    # هل يملكها؟
+    if UserReward.objects.filter(user=user, reward=reward).exists():
+        return {
+            "status": "owned",
+            "points": user_points.total_points
+        }
+
+    # هل يملك نقاط كافية؟
+    if user_points.total_points < reward.cost_points:
+        return {
+            "status": "not_enough_points",
+            "points": user_points.total_points
+        }
+
+    # خصم النقاط
+    user_points.total_points -= reward.cost_points
+    user_points.save()
+
+    # تسجيل المكافأة
+    UserReward.objects.create(user=user, reward=reward)
+
+    return {
+        "status": "unlocked",
+        "points": user_points.total_points
+    }
+
+def get_video_status(user, video):
+    # إذا لا يوجد مكافأة → مقفل
+    if not hasattr(video, "reward"):
+        return "disabled"
+
+    # إذا تم الشراء
+    if UserReward.objects.filter(
+        user=user,
+        reward__video=video
+    ).exists():
+        return "owned"
+
+    user_points = UserPoints.objects.get(user=user)
+
+    if user_points.total_points >= video.reward.cost_points:
+        return "able"
+
+    return "disabled"
+
+
+ALLOWED_TYPES = {
+    "prayer",
+    "fasting",
+    "quran",
+    "azkar",
+    "sunnah",
+    "taraweeh",
+}
+
+@transaction.atomic
+def add_offline_event(user, event_type: str, points: int):
+    if event_type not in ALLOWED_TYPES:
+        raise ValueError("نوع الحدث غير مدعوم")
+
+    if points <= 0:
+        raise ValueError("عدد النقاط غير صالح")
+
+    # 1️⃣ زيادة النقاط الكلية (الحقيقة)
+    user_points, _ = UserPoints.objects.select_for_update().get_or_create(
+        user=user
+    )
+    user_points.total_points += points
+    user_points.save()
+
+    # 2️⃣ تسجيل الحدث فقط للتفصيل (breakdown)
+    OfflinePointEvent.objects.create(
+        user=user,
+        event_type=event_type,
+        points=points
+    )
+
+    return user_points.total_points

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DailyActivity, UserPoints
+from .models import DailyActivity, UserPoints,Reward,UserReward
 
 
 # ---------------------------------------------------------
@@ -33,3 +33,13 @@ class PointsBreakdownSerializer(serializers.Serializer):
     azkar = serializers.IntegerField()
     total = serializers.IntegerField()
 
+
+class RewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reward
+        fields = "__all__"
+
+class UserRewardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserReward
+        fields = "__all__"

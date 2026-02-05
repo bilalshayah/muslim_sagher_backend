@@ -71,30 +71,62 @@ class QuranProgress(models.Model):
         return f"{self.user.username} - {self.completed_khatmas} ختمات"
     
 
-# class Reward(models.Model):
-#     REWARD_TYPES = [
-#         ("video", "Short Video"),
-#         ("sticker", "Sticker"),
-#         ("badge", "Badge"),
-#         ("video_pack", "Video Pack"),
-#     ]
 
-#     type = models.CharField(max_length=20, choices=REWARD_TYPES)
-#     required_points = models.IntegerField()
-#     title = models.CharField(max_length=100)
-#     description = models.TextField(blank=True)
+class Reward(models.Model):
+    REWARD_TYPES = [("video", "Video"),("badge", "Badge"),("sticker", "Sticker"),("content", "Extra Content"),]
 
-#     def __str__(self):
-#         return f"{self.title} ({self.required_points} pts)"
+    title = models.CharField(max_length=100,help_text="اسم المكافأة الظاهر للطفل")
+
+    description = models.TextField(blank=True,help_text="وصف المكافأة")
+
+    type = models.CharField(max_length=20,choices=REWARD_TYPES)
+
+    cost_points = models.PositiveIntegerField(help_text="عدد النقاط المطلوبة لشراء المكافأة")
+
+    # 🔗 ربط المكافأة بالفيديو (في حال كانت مكافأة فيديو)
+    video = models.OneToOneField("video.Video",on_delete=models.CASCADE,null=True,blank=True,related_name="reward")
+
+    is_active = models.BooleanField(default=True,help_text="هل المكافأة متاحة حالياً")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.cost_points} pts)"
 
 
-# class UserReward(models.Model):
-#     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-#     reward = models.ForeignKey(Reward, on_delete=models.CASCADE)
-#     unlocked_at = models.DateTimeField(auto_now_add=True)
 
-#     class Meta:
-#         unique_together = ("user", "reward")
+class UserReward(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="rewards")
 
-#     def __str__(self):
-#         return f"{self.user.username} unlocked {self.reward.title}"
+    reward = models.ForeignKey(Reward,on_delete=models.CASCADE,related_name="owners")
+
+    purchased_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "reward")
+        verbose_name = "User Reward"
+        verbose_name_plural = "User Rewards"
+
+    def __str__(self):
+        return f"{self.user} → {self.reward.title}"
+
+class OfflinePointEvent(models.Model):
+    EVENT_TYPES = [
+        ("prayer", "Prayer"),
+        ("fasting", "Fasting"),
+        ("quran", "Quran"),
+        ("azkar", "Azkar"),
+        ("sunnah", "Sunnah"),
+        ("taraweeh", "Taraweeh"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="offline_events")
+
+    event_type = models.CharField(max_length=20,choices=EVENT_TYPES)
+
+    points = models.PositiveIntegerField()
+
+    synced_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} | {self.event_type} | +{self.points}"

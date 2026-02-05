@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from person.permissions import IsAdmin,IsChild
 from .models import Video
 from .serializer import VideoSerializer
+from points.services import get_video_status
 
 
 # Swagger
@@ -99,23 +100,56 @@ class VideoDeleteView(APIView):
 
 
 #إظهار الفيديوهات غير المقفولة للطفل
+
+
 class MyVideosView(APIView):
     permission_classes = [IsAuthenticated]
 
     @auto_swagger(
-        description="عرض الفيديوهات المتاحة(فقط غير المقفولة)",
-        responses={
-            200: openapi.Response("تم جلب الفيديوهات بنجاح", VideoSerializer(many=True))
-        }
+        description="عرض جميع الفيديوهات مع حالتها (owned / able / disabled)",
     )
     def get(self, request):
-        videos = Video.objects.filter(is_lock=False)
-        serializer = VideoSerializer(videos, many=True)
+        videos = Video.objects.all()
+
+        data = []
+        for video in videos:
+            status = get_video_status(request.user, video)
+
+            data.append({
+                **VideoSerializer(video).data,
+                "status": status,
+                "cost_points": video.reward.cost_points if hasattr(video, "reward") else 0
+            })
 
         return Response({
             "status": "success",
-            "message": "تم جلب الفيديوهات بنجاح",
-            "data": serializer.data
+            "message": "تم جلب الفيديوهات",
+            "data": data
         })
     
+    
+
+class VideoPlayView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @auto_swagger(description="تشغيل فيديو (فقط إذا كان مملوكًا)")
+    def get(self, request, pk):
+        video = get_object_or_404(Video, pk=pk)
+
+        status_video = get_video_status(request.user, video)
+
+        if status_video != "owned":
+            return Response({
+                "status": "error",
+                "message": "لا يمكنك مشاهدة هذا الفيديو قبل شرائه",
+                "data": {
+                    "video_status": status_video
+                }
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        return Response({
+            "status": "success",
+            "message": "تم السماح بتشغيل الفيديو",
+            "data": VideoSerializer(video).data
+        }, status=status.HTTP_200_OK)    
 

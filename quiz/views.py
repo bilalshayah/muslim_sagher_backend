@@ -19,7 +19,7 @@ from .serializers import (
     SubmitQuizSerializer,
     QuestionWithChoicesAdminSerializer
 )
-
+from points.services import add_points,get_rewards_status_for_user
 
 # ---------------------------------------------------------
 # 1) APIs الخاصة بالطفل (User-facing)
@@ -119,9 +119,9 @@ class SubmitQuizView(APIView):
             points_added = score
 
             # إضافة النقاط الكلية
-            user_points, _ = UserPoints.objects.get_or_create(user=request.user)
-            user_points.total_points += points_added
-            user_points.save()
+            add_points(request.user, points_added)
+
+            rewards = get_rewards_status_for_user(request.user)    
 
         # حفظ المحاولة
         UserQuizAttempt.objects.create(
@@ -138,7 +138,8 @@ class SubmitQuizView(APIView):
                 "correct_answers": correct_answers,
                 "score": round(score, 2),
                 "points_added": round(points_added, 2),
-                "details": detailed_results
+                "details": detailed_results,
+                "rewards":rewards
             }
         }, status=200)
 

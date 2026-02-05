@@ -10,7 +10,9 @@ from .views import (
     AzkarMarkView,
     QuranReadView,
     QuranProgressView,
-    PointsSummaryView
+    PointsSummaryView,
+    RewardViewSet,
+    OfflineSyncView
 )
 
 # 🔹 نستخدم Router لأن لدينا ViewSets (مثل الصلاة والصيام والسنن والتراويح)
@@ -44,6 +46,9 @@ router.register(r'sunnah', SunnahViewSet, basename='sunnah')
 # ---------------------------------------------------------
 router.register(r'taraweeh', TaraweehViewSet, basename='taraweeh')
 
+
+router.register(r'rewards', RewardViewSet, basename='rewards')
+
 urlpatterns = [
     # 🔹 إدراج كل الـ ViewSets المسجلة في الـ Router
     path('', include(router.urls)),
@@ -70,4 +75,9 @@ urlpatterns = [
     path('quran/progress/', QuranProgressView.as_view(), name='quran-progress'),
  
     path('points/summary/', PointsSummaryView.as_view(), name='points-summary'),
+    
+    path(
+    "points/offline/sync/",OfflineSyncView.as_view(),name="offline-events-sync"
+)
+
 ]

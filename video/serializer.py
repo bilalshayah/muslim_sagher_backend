@@ -1,6 +1,7 @@
 
 from rest_framework import serializers
 from .models import Video
+from points.models import UserReward,UserPoints
 
 class VideoSerializer(serializers.ModelSerializer):
     class Meta:
