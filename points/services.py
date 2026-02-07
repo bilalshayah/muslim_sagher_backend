@@ -16,52 +16,35 @@ from django.db import transaction
 from .models import DailyActivity, DailyAzkarStatus, AzkarCategory
 
 
+@transaction.atomic
 def get_today_activity(user):
-    """
-    ترجع سجل اليوم الحالي.
-    - تعتمد على cron كخيار أساسي
-    - تعمل fallback فقط إذا لم يوجد سجل (مثلاً لو السيرفر كان طافي)
-    """
-
     today = timezone.localdate()
 
-    activity = DailyActivity.objects.filter(
+    activity, created = DailyActivity.objects.get_or_create(
         user=user,
-        date=today
-    ).first()
+        date=today,
+        defaults={
+            "fajr": False,
+            "dhuhr": False,
+            "asr": False,
+            "maghrib": False,
+            "isha": False,
+            "taraweeh": False,
+            "fasting": False,
+            "sunnah_fajr": False,
+            "sunnah_dhuhr": False,
+            "sunnah_maghrib": False,
+            "sunnah_isha": False,
+            "quran_pages": 0,
+            "daily_points": 0,
+        },
+    )
 
-    if activity:
-        return activity
-
-    # 🔁 Fallback واضح ومقصود
-    with transaction.atomic():
-        activity = DailyActivity.objects.create(
-            user=user,
-            date=today,
-            fajr=False,
-            dhuhr=False,
-            asr=False,
-            maghrib=False,
-            isha=False,
-            taraweeh=False,
-            fasting=False,
-            sunnah_fajr=False,
-            sunnah_dhuhr=False,
-            sunnah_maghrib=False,
-            sunnah_isha=False,
-            quran_pages=0,
-            daily_points=0,
-        )
-
-        # إنشاء حالات الأذكار لليوم
+    if created:
         categories = AzkarCategory.objects.all()
         DailyAzkarStatus.objects.bulk_create([
-            DailyAzkarStatus(
-                activity=activity,
-                category=category,
-                done=False
-            )
-            for category in categories
+            DailyAzkarStatus(activity=activity, category=cat, done=False)
+            for cat in categories
         ])
 
     return activity
@@ -263,6 +246,10 @@ def mark_quran_reading(user, pages):
 
     # تحديث النقاط الكلية
     add_points(user,pages+reward)
+    if reward > 0:
+        user_points = UserPoints.objects.get(user=user)
+        user_points.khatma_reward_points += reward
+        user_points.save()
 
     #new_rewards = check_and_unlock_rewards(user)
 
@@ -328,6 +315,10 @@ def get_points_summary(user):
             "taraweeh": taraweeh_points + offline_breakdown["taraweeh"],
             "quran": quran_points + offline_breakdown["quran"],
             "azkar": azkar_points + offline_breakdown["azkar"],
+            "points_spent_on_videos": user_points.points_spent_on_videos,
+            "points_from_exams": user_points.points_from_exams,
+            "khatma_reward_points": user_points.khatma_reward_points,
+
         }
     }
 
@@ -410,6 +401,7 @@ def unlock_reward_for_user(user, reward_id):
 
     # خصم النقاط
     user_points.total_points -= reward.cost_points
+    user_points.points_spent_on_videos += reward.cost_points
     user_points.save()
 
     # تسجيل المكافأة
@@ -456,13 +448,18 @@ def add_offline_event(user, event_type: str, points: int):
 
     if points <= 0:
         raise ValueError("عدد النقاط غير صالح")
+    #اذا كان الحدث صيام يتم حسابها بالدالة من اجل اكتمال الختمة وجائزة الختمة تحسب
+    if event_type == "quran":
+        mark_quran_reading(user, points)
+        user_points = UserPoints.objects.get(user=user)
+    else:
 
     # 1️⃣ زيادة النقاط الكلية (الحقيقة)
-    user_points, _ = UserPoints.objects.select_for_update().get_or_create(
-        user=user
-    )
-    user_points.total_points += points
-    user_points.save()
+        user_points, _ = UserPoints.objects.select_for_update().get_or_create(
+            user=user
+        )
+        user_points.total_points += points
+        user_points.save()
 
     # 2️⃣ تسجيل الحدث فقط للتفصيل (breakdown)
     OfflinePointEvent.objects.create(

@@ -363,24 +363,22 @@ class PointsSummaryView(APIView):
 #--------------------------------------------------------
 #المكافآت CRUD 
 #--------------------------------------------------------
-
-
-
+ 
 class RewardViewSet(viewsets.ModelViewSet):
+    
+    queryset = Reward.objects.all().order_by("-created_at")
+    serializer_class = RewardSerializer
+
     def get_serializer_class(self):
-    # 🔹 Swagger generation
         if getattr(self, 'swagger_fake_view', False):
             return RewardSerializer
 
-    # 🔹 unlock لا يحتاج serializer
         if self.action == "unlock":
-            return None
+            return EmptySerializer
 
         return RewardSerializer
 
 
-    queryset = Reward.objects.all().order_by("-created_at")
-    serializer_class = RewardSerializer
     def get_permissions(self):
         if self.action in ["list_for_user", "unlock"]:
             return [IsAuthenticated()]

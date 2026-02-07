@@ -43,7 +43,7 @@ urlpatterns = [
     path('api/quiz/', include('quiz.urls')),
     path('api/azkar-category/', include('azkar.urls')),
     path('api/points/',include('points.urls')),
-
+    path("api/", include("stories.urls")),
     
     
 

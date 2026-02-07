@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'quiz',
     'azkar',
     'points',
+    'stories'
 ]
 
 

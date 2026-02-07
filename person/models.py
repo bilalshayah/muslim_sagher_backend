@@ -9,7 +9,7 @@ ROLE_CHOICES = (
 class Person(AbstractUser):
     name = models.CharField(max_length=100)
     mobile = models.CharField(max_length=10)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='child')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     email=models.EmailField(null=True,blank=True)
     father_name=models.CharField(max_length=100,null=True,blank=True)
     mother_name=models.CharField(max_length=100,null=True,blank=True)

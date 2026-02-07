@@ -120,8 +120,10 @@ class SubmitQuizView(APIView):
 
             # إضافة النقاط الكلية
             add_points(request.user, points_added)
+            user_points = UserPoints.objects.get(user=request.user)
+            user_points.points_from_exams += points_added
+            user_points.save()
 
-            rewards = get_rewards_status_for_user(request.user)    
 
         # حفظ المحاولة
         UserQuizAttempt.objects.create(
@@ -139,7 +141,6 @@ class SubmitQuizView(APIView):
                 "score": round(score, 2),
                 "points_added": round(points_added, 2),
                 "details": detailed_results,
-                "rewards":rewards
             }
         }, status=200)
 

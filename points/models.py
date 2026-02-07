@@ -4,10 +4,11 @@ from django.db import models
 from django.db import models
 from django.conf import settings
 from azkar.models import AzkarCategory
+from django.utils import timezone
 
 class DailyActivity(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(default=timezone.localdate)
 
     # الصلوات المفروضة
     fajr = models.BooleanField(default=False)
@@ -43,8 +44,9 @@ class UserPoints(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     total_points = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
-
-
+    points_spent_on_videos = models.IntegerField(default=0)
+    points_from_exams = models.IntegerField(default=0)
+    khatma_reward_points = models.IntegerField(default=0)
     def __str__(self):
         return f"{self.user.username} - {self.total_points} points"
     

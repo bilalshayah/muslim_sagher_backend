@@ -43,3 +43,4 @@ class UserRewardSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserReward
         fields = "__all__"
+
