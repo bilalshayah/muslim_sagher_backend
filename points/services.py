@@ -6,7 +6,8 @@ from django.db import transaction
 from django.utils import timezone
 from .models import DailyActivity, UserPoints,DailyAzkarStatus,AzkarCategory,QuranProgress,OfflinePointEvent
 from .prayer_utils import is_within_prayer_time
-
+from utils.notifications import send_firebase_notification
+from person.models import Person
 
 # ----------------------------------------------------
 # جلب أو إنشاء سجل اليوم الحالي
@@ -66,6 +67,12 @@ def add_points(user, points: int):
 
     user_points.total_points += int(points)
     user_points.save()
+    if user.device_token:
+        send_firebase_notification(
+            user.device_token,
+            "نقاط جديدة!",
+            f"لقد حصلت على {points} نقاط جديدة"
+        )
 
     return user_points.total_points
 
@@ -95,6 +102,9 @@ def mark_prayer(user, prayer_name):
 
     # new_rewards = 
     add_points(user, PRAYER_POINTS)
+    
+
+
     return activity, PRAYER_POINTS#,new_rewards
 
 
@@ -117,6 +127,8 @@ def mark_fasting(user):
 
     # new_rewards=
     add_points(user, FASTING_POINTS)
+    
+
     return activity, FASTING_POINTS#,new_rewards
 
 
@@ -141,6 +153,8 @@ def mark_sunnah(user, sunnah_name):
 
     # new_rewards=
     add_points(user, SUNNAH_POINTS)
+    
+
     return activity, SUNNAH_POINTS#,new_rewards
 
 
@@ -162,6 +176,8 @@ def mark_taraweeh(user):
 
     # new_rewards=
     add_points(user, TARAWEEH_POINTS)
+    
+
     return activity, TARAWEEH_POINTS#,new_rewards
 # ----------------------------------------------------
 # تسجيل الأذكار
@@ -200,6 +216,7 @@ def mark_azkar(user, category_id):
     # إضافة النقاط للمستخدم
     #new_rewards=
     add_points(user, POINTS)
+    
 
     return activity, POINTS#,new_rewards
 # ----------------------------------------------------
@@ -403,6 +420,12 @@ def unlock_reward_for_user(user, reward_id):
     user_points.total_points -= reward.cost_points
     user_points.points_spent_on_videos += reward.cost_points
     user_points.save()
+    if user.device_token:
+        send_firebase_notification(
+            user.device_token,
+            "تم الحسم من نقاطك",
+            f"لقد حصلت على {reward.cost_points} نقاط جديدة"
+        )
 
     # تسجيل المكافأة
     UserReward.objects.create(user=user, reward=reward)
@@ -460,6 +483,13 @@ def add_offline_event(user, event_type: str, points: int):
         )
         user_points.total_points += points
         user_points.save()
+        if user.device_token:
+            send_firebase_notification(
+            user.device_token,
+            "نقاط جديدة!",
+            f"لقد حصلت على {points} نقاط جديدة"
+        )
+
 
     # 2️⃣ تسجيل الحدث فقط للتفصيل (breakdown)
     OfflinePointEvent.objects.create(

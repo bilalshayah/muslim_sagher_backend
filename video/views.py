@@ -114,9 +114,12 @@ class MyVideosView(APIView):
         data = []
         for video in videos:
             status = get_video_status(request.user, video)
-
+            serialized = VideoSerializer(
+                video,
+                context={"request": request}
+            ).data
             data.append({
-                **VideoSerializer(video).data,
+                **serialized,
                 "status": status,
                 "cost_points": video.reward.cost_points if hasattr(video, "reward") else 0
             })
@@ -150,6 +153,6 @@ class VideoPlayView(APIView):
         return Response({
             "status": "success",
             "message": "تم السماح بتشغيل الفيديو",
-            "data": VideoSerializer(video).data
+            "data": VideoSerializer(video,context={"request": request}).data
         }, status=status.HTTP_200_OK)    
 

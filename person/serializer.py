@@ -6,10 +6,10 @@ import uuid
 Person = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
-    father_name = serializers.CharField(required=False, allow_blank=True)
-    mother_name = serializers.CharField(required=False, allow_blank=True)
-    birth_date = serializers.DateField(required=False)
-    email = serializers.EmailField(required=False, allow_blank=True)
+    father_name = serializers.CharField(required=False, allow_null=True)
+    mother_name = serializers.CharField(required=False, allow_null=True)
+    birth_date = serializers.DateField(required=False,allow_null=True)
+    email = serializers.EmailField(required=False, allow_null=True,default=None)
 
     class Meta:
         model = Person
@@ -74,6 +74,7 @@ class LoginSerializer(serializers.Serializer):
         refresh = RefreshToken.for_user(user)
 
         return {
+            "user":user,
             "user_id": user.id,
             "username": user.username,
             "role": user.role,
@@ -129,3 +130,8 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             "mother_name": {"required": False},
             "birth_date": {"required": False},
         }
+
+from rest_framework import serializers
+
+class DeviceTokenSerializer(serializers.Serializer):
+    device_token = serializers.CharField()

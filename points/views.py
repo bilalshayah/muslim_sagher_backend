@@ -15,6 +15,7 @@ from .prayer_utils import VALID_PRAYERS
 from django.core.exceptions import ValidationError
 from person.permissions import IsAdmin
 from django.db import transaction
+from firebase_admin import messaging
 
 class PrayerViewSet(viewsets.ViewSet):
     """
@@ -59,7 +60,6 @@ class PrayerViewSet(viewsets.ViewSet):
 
         # تسجيل الصلاة
         activity, points = mark_prayer(request.user, prayer)
-        
 
         return Response({
             "status": "success",

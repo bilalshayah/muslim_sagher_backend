@@ -20,7 +20,7 @@ from .serializers import (
     QuestionWithChoicesAdminSerializer
 )
 from points.services import add_points,get_rewards_status_for_user
-
+from utils.notifications import send_firebase_notification
 # ---------------------------------------------------------
 # 1) APIs الخاصة بالطفل (User-facing)
 # ---------------------------------------------------------
@@ -56,7 +56,7 @@ class SubmitQuizView(APIView):
         request_body=SubmitQuizSerializer
     )
     def post(self, request, video_id):
-
+        user=request.user
         # منع إعادة الاختبار
         if UserQuizAttempt.objects.filter(user=request.user, video_id=video_id).exists():
             return Response({
@@ -123,7 +123,14 @@ class SubmitQuizView(APIView):
             user_points = UserPoints.objects.get(user=request.user)
             user_points.points_from_exams += points_added
             user_points.save()
+            if user.device_token:
+                send_firebase_notification(
+                user.device_token,
+                "نقاط جديدة!",
+                f"لقد حصلت على {points_added} نقاط جديدة"
+        )
 
+            
 
         # حفظ المحاولة
         UserQuizAttempt.objects.create(

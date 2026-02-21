@@ -10,8 +10,8 @@ from utils.swagger import auto_swagger
 from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth import get_user_model
-from .serializer import RegisterSerializer, LoginSerializer,ForgotPasswordSerializer,ResetPasswordSerializer,ProfileSerializer,ProfileUpdateSerializer
-
+from .serializer import RegisterSerializer, LoginSerializer,ForgotPasswordSerializer,ResetPasswordSerializer,ProfileSerializer,ProfileUpdateSerializer,DeviceTokenSerializer
+from utils.notifications import send_firebase_notification
 Person = get_user_model()
 
 
@@ -58,6 +58,16 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
 
         if serializer.is_valid():
+            user = serializer.validated_data["user"]  # ← مهم جدًا
+
+            # 🔥 إرسال إشعار تسجيل الدخول
+            if user.device_token:
+                send_firebase_notification(
+                    user.device_token,
+                    "مرحبًا بعودتك!",
+                    "تم تسجيل دخولك بنجاح"
+                )
+
             return Response({
                 "status": "success",
                 "message": "تم تسجيل الدخول بنجاح",
@@ -281,4 +291,29 @@ class LogoutView(APIView):
                 "data":{}
             },status=status.HTTP_400_BAD_REQUEST)
 
-    
+class SaveDeviceTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @auto_swagger(
+        description="حفظ توكن الإشعارات الخاص بالمستخدم (Firebase Device Token)",
+        request_body=DeviceTokenSerializer
+    )
+    def post(self, request):
+        serializer = DeviceTokenSerializer(data=request.data)
+
+        if serializer.is_valid():
+            token = serializer.validated_data["device_token"]
+            request.user.device_token = token
+            request.user.save()
+
+            return Response({
+                "status": "success",
+                "message": "تم حفظ التوكن بنجاح",
+                "data": {"device_token": token}
+            })
+
+        return Response({
+            "status": "error",
+            "message": "خطأ في البيانات",
+            "data": serializer.errors
+        }, status=400)

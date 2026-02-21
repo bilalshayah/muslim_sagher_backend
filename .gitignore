@@ -27,7 +27,7 @@ venv/
 ENV/
 env/
 .myvenv/
-.msenv.*
+.msenv*/
 
 # Django
 *.log
@@ -56,3 +56,5 @@ Thumbs.db
 # Railway
 .railway/
 
+# Firebase 🔥
+config/firebase-service-account.json

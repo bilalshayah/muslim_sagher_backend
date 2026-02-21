@@ -235,3 +235,5 @@ SWAGGER_SETTINGS = {
 REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
 }
+# Firebase initialization
+import config.firebase

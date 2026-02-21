@@ -14,7 +14,7 @@ class Person(AbstractUser):
     father_name=models.CharField(max_length=100,null=True,blank=True)
     mother_name=models.CharField(max_length=100,null=True,blank=True)
     birth_date=models.DateField(null=True,blank=True)
-
+    device_token = models.CharField(max_length=255, null=True, blank=True)
     # username موجود من AbstractUser
     # password موجود من AbstractUser
 
