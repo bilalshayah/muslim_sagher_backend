@@ -1,11 +1,11 @@
+import os
+import json
 import firebase_admin
 from firebase_admin import credentials
 
-import os
-from django.conf import settings
+firebase_creds = os.getenv("FIREBASE_CREDENTIALS")
 
-if not firebase_admin._apps:
-    cred = credentials.Certificate(
-        os.path.join(settings.BASE_DIR, "config/firebase-service-account.json")
-    )
+if firebase_creds and not firebase_admin._apps:
+    cred_dict = json.loads(firebase_creds)
+    cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred)
