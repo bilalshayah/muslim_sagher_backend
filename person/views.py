@@ -55,10 +55,10 @@ class LoginView(APIView):
         request_body=LoginSerializer
     )
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginSerializer(data=request.data,context={})
 
         if serializer.is_valid():
-            user = serializer.validated_data["user"]  # ← مهم جدًا
+            user = serializer.context["user"]  # ← مهم جدًا
 
             # 🔥 إرسال إشعار تسجيل الدخول
             if user.device_token:
@@ -80,7 +80,7 @@ class LoginView(APIView):
             "data": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
-# -----------------------------
+# -----------------------------s
 # Refresh Token View
 # -----------------------------
 class CustomTokenRefreshView(TokenRefreshView):

@@ -72,9 +72,8 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("كلمة المرور غير صحيحة")
 
         refresh = RefreshToken.for_user(user)
-
+        self.context["user"] = user
         return {
-            "user":user,
             "user_id": user.id,
             "username": user.username,
             "role": user.role,
@@ -131,7 +130,6 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             "birth_date": {"required": False},
         }
 
-from rest_framework import serializers
 
 class DeviceTokenSerializer(serializers.Serializer):
     device_token = serializers.CharField()
