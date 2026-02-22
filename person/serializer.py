@@ -57,6 +57,7 @@ class LoginSerializer(serializers.Serializer):
     full_name = serializers.CharField()
     mobile = serializers.CharField()
     password = serializers.CharField(write_only=True)
+    device_token = serializers.CharField(required=False, allow_blank=True)
 
     def validate(self, data):
         full_name = data.get('full_name')
@@ -131,5 +132,3 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         }
 
 
-class DeviceTokenSerializer(serializers.Serializer):
-    device_token = serializers.CharField()

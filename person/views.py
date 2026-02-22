@@ -10,7 +10,7 @@ from utils.swagger import auto_swagger
 from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth import get_user_model
-from .serializer import RegisterSerializer, LoginSerializer,ForgotPasswordSerializer,ResetPasswordSerializer,ProfileSerializer,ProfileUpdateSerializer,DeviceTokenSerializer
+from .serializer import RegisterSerializer, LoginSerializer,ForgotPasswordSerializer,ResetPasswordSerializer,ProfileSerializer,ProfileUpdateSerializer
 from utils.notifications import send_firebase_notification
 Person = get_user_model()
 
@@ -51,35 +51,41 @@ class RegisterView(CreateAPIView):
 class LoginView(APIView):
 
     @auto_swagger(
-        description="تسجيل دخول",
+        description="تسجيل دخول + حفظ device token إن وُجد",
         request_body=LoginSerializer
     )
     def post(self, request):
-        serializer = LoginSerializer(data=request.data,context={})
+        serializer = LoginSerializer(data=request.data, context={})
 
-        if serializer.is_valid():
-            user = serializer.context["user"]  # ← مهم جدًا
-
-            # 🔥 إرسال إشعار تسجيل الدخول
-            if user.device_token:
-                send_firebase_notification(
-                    user.device_token,
-                    "مرحبًا بعودتك!",
-                    "تم تسجيل دخولك بنجاح"
-                )
-
+        if not serializer.is_valid():
             return Response({
-                "status": "success",
-                "message": "تم تسجيل الدخول بنجاح",
-                "data": serializer.validated_data
-            }, status=status.HTTP_200_OK)
+                "status": "error",
+                "message": "بيانات غير صحيحة",
+                "data": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # ✅ المستخدم المستخرج من serializer
+        user = serializer.context["user"]
+
+        # ✅ حفظ device token إن أُرسل
+        device_token = request.data.get("device_token")
+        if device_token:
+            user.device_token = device_token
+            user.save(update_fields=["device_token"])
+
+        # 🔔 إشعار ترحيبي (اختياري)
+        if user.device_token:
+            send_firebase_notification(
+                user.device_token,
+                "مرحبًا بعودتك 👋",
+                "تم تسجيل دخولك بنجاح"
+            )
 
         return Response({
-            "status": "error",
-            "message": "بيانات غير صحيحة",
-            "data": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
-
+            "status": "success",
+            "message": "تم تسجيل الدخول بنجاح",
+            "data": serializer.validated_data
+        }, status=status.HTTP_200_OK)
 # -----------------------------s
 # Refresh Token View
 # -----------------------------
@@ -291,29 +297,4 @@ class LogoutView(APIView):
                 "data":{}
             },status=status.HTTP_400_BAD_REQUEST)
 
-class SaveDeviceTokenView(APIView):
-    permission_classes = [IsAuthenticated]
 
-    @auto_swagger(
-        description="حفظ توكن الإشعارات الخاص بالمستخدم (Firebase Device Token)",
-        request_body=DeviceTokenSerializer
-    )
-    def post(self, request):
-        serializer = DeviceTokenSerializer(data=request.data)
-
-        if serializer.is_valid():
-            token = serializer.validated_data["device_token"]
-            request.user.device_token = token
-            request.user.save()
-
-            return Response({
-                "status": "success",
-                "message": "تم حفظ التوكن بنجاح",
-                "data": {"device_token": token}
-            })
-
-        return Response({
-            "status": "error",
-            "message": "خطأ في البيانات",
-            "data": serializer.errors
-        }, status=400)

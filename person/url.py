@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, LoginView,TokenRefreshView,ForgotPasswordView,ResetPassowrdView,ProfileUpdateView,ProfileView,LogoutView,SaveDeviceTokenView
+from .views import RegisterView, LoginView,TokenRefreshView,ForgotPasswordView,ResetPassowrdView,ProfileUpdateView,ProfileView,LogoutView
 # from .views import PersonAuthView
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -10,7 +10,6 @@ urlpatterns = [
     path('profile/',ProfileView.as_view(),name='profile'),
     path('profile/update/',ProfileUpdateView.as_view(),name='profile_update'),
     path('logout/',LogoutView.as_view(),name='logout'),
-    path("save-device-token/", SaveDeviceTokenView.as_view(), name="save-device-token"),
 
 
 ]
