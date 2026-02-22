@@ -61,7 +61,7 @@ def add_points(user, points: int):
     if points <= 0:
         return
 
-    user_points, _ = UserPoints.objects.select_for_update().get_or_create(
+    user_points, _ = UserPoints.objects.select_for_update().get(
         user=user
     )
 
@@ -321,7 +321,7 @@ def get_points_summary(user):
         offline_breakdown[e.event_type] += e.points
 
     # -------- totals --------
-    user_points, _ = UserPoints.objects.get_or_create(user=user)
+    user_points, _ = UserPoints.objects.get(user=user)
 
     return {
         "total_points": user_points.total_points,
@@ -363,7 +363,7 @@ def get_rewards_status_for_user(user):
     - disabled
     """
 
-    user_points, _ = UserPoints.objects.get_or_create(user=user)
+    user_points, _ = UserPoints.objects.get(user=user)
     owned_rewards_ids = set(
         UserReward.objects.filter(user=user)
         .values_list("reward_id", flat=True)
@@ -478,7 +478,7 @@ def add_offline_event(user, event_type: str, points: int):
     else:
 
     # 1️⃣ زيادة النقاط الكلية (الحقيقة)
-        user_points, _ = UserPoints.objects.select_for_update().get_or_create(
+        user_points, _ = UserPoints.objects.select_for_update().get(
             user=user
         )
         user_points.total_points += points

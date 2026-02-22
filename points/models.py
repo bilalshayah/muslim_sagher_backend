@@ -41,7 +41,7 @@ class DailyActivity(models.Model):
         return f"{self.user.username} - {self.date}"
     
 class UserPoints(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name="points")
     total_points = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
     points_spent_on_videos = models.IntegerField(default=0)
