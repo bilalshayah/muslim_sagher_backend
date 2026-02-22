@@ -1,7 +1,8 @@
 from firebase_admin import messaging
-
+from config.firebase import init_firebase
 
 def send_firebase_notification(token, title, body, data=None):
+    init_firebase()
     message = messaging.Message(
         notification=messaging.Notification(
             title=title,
