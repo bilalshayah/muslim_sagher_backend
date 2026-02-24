@@ -25,9 +25,14 @@ def init_firebase():
         return True
 
     firebase_creds = os.getenv("FIREBASE_CREDENTIALS")
-    if not firebase_creds or not firebase_creds.strip():
-        logger.warning("FIREBASE_CREDENTIALS: المتغير غير معرّف أو قيمته فارغة. تحقق من Variables في Railway.")
+    # تشخيص: هل المتغير يصل للتطبيق؟ (نطبع الطول فقط لأمان المفتاح)
+    if firebase_creds is None:
+        logger.warning("FIREBASE_CREDENTIALS: المتغير غير موجود في البيئة (None). جرّب Redeploy بعد حفظ Variables.")
         return False
+    if not firebase_creds.strip():
+        logger.warning("FIREBASE_CREDENTIALS: القيمة فارغة (طول=%d). تحقق من القيمة في Railway.", len(firebase_creds))
+        return False
+    logger.info("FIREBASE_CREDENTIALS: موجود، طول القيمة = %d", len(firebase_creds))
 
     try:
         # يدعم JSON على سطر واحد أو متعدد (مهم: على Railway يجب سطر واحد)
