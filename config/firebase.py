@@ -20,29 +20,30 @@ logger = logging.getLogger(__name__)
 
 
 def init_firebase():
-    """Initialize Firebase if FIREBASE_CREDENTIALS is set. Returns True if initialized, False otherwise."""
+    """Initialize Firebase. Reads from FIREBASE_CREDENTIALS_JSON or FIREBASE_CREDENTIALS (Railway recommends the first)."""
     if firebase_admin._apps:
         return True
 
-    firebase_creds = os.getenv("FIREBASE_CREDENTIALS")
-    # تشخيص: هل المتغير يصل للتطبيق؟ (نطبع الطول فقط لأمان المفتاح)
+    # Railway يوصي بـ FIREBASE_CREDENTIALS_JSON؛ ندعم الاثنين
+    firebase_creds = os.getenv("FIREBASE_CREDENTIALS_JSON") or os.getenv("FIREBASE_CREDENTIALS")
+    var_name = "FIREBASE_CREDENTIALS_JSON" if os.getenv("FIREBASE_CREDENTIALS_JSON") else "FIREBASE_CREDENTIALS"
+
     if firebase_creds is None:
-        logger.warning("FIREBASE_CREDENTIALS: المتغير غير موجود في البيئة (None). جرّب Redeploy بعد حفظ Variables.")
+        logger.warning("Firebase: المتغير غير موجود. أضف FIREBASE_CREDENTIALS_JSON أو FIREBASE_CREDENTIALS في Railway ثم Redeploy.")
         return False
     if not firebase_creds.strip():
-        logger.warning("FIREBASE_CREDENTIALS: القيمة فارغة (طول=%d). تحقق من القيمة في Railway.", len(firebase_creds))
+        logger.warning("Firebase: القيمة فارغة (طول=%d). تحقق من القيمة في Variables.", len(firebase_creds))
         return False
-    logger.info("FIREBASE_CREDENTIALS: موجود، طول القيمة = %d", len(firebase_creds))
+    logger.info("Firebase: قراءة %s، طول القيمة = %d", var_name, len(firebase_creds))
 
     try:
-        # يدعم JSON على سطر واحد أو متعدد (مهم: على Railway يجب سطر واحد)
         cred_dict = json.loads(firebase_creds)
         cred = credentials.Certificate(cred_dict)
         firebase_admin.initialize_app(cred)
         return True
     except json.JSONDecodeError as e:
-        logger.warning("FIREBASE_CREDENTIALS: JSON غير صالح - تأكد أن القيمة سطر واحد (minified). %s", e)
+        logger.warning("Firebase: JSON غير صالح. في Raw Editor استخدم سطر واحد (minified). %s", e)
         return False
     except Exception as e:
-        logger.warning("FIREBASE_CREDENTIALS: فشل تهيئة Firebase: %s", e)
+        logger.warning("Firebase: فشل التهيئة: %s", e)
         return False
