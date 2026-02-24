@@ -26,6 +26,7 @@ def init_firebase():
 
     firebase_creds = os.getenv("FIREBASE_CREDENTIALS")
     if not firebase_creds or not firebase_creds.strip():
+        logger.warning("FIREBASE_CREDENTIALS: المتغير غير معرّف أو قيمته فارغة. تحقق من Variables في Railway.")
         return False
 
     try:
