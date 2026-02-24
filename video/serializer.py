@@ -10,7 +10,7 @@ class VideoSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
     def validate_video(self, value):
-        max_size = 50 * 1024 * 1024  # 50MB
+        max_size = 50 * 1024 * 1024  
         if value.size > max_size:
             raise serializers.ValidationError("حجم الفيديو أكبر من 50MB")
         return value
