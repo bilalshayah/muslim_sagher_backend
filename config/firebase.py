@@ -24,7 +24,15 @@ def init_firebase():
     if firebase_admin._apps:
         return True
 
-    # Railway يوصي بـ FIREBASE_CREDENTIALS_JSON؛ ندعم الاثنين
+    # تشخيص: أي متغيرات بيئة تحتوي "FIREBASE"؟ (للتأكد من وصولها من Railway)
+    firebase_keys = [k for k in os.environ if "FIREBASE" in k.upper()]
+    if not firebase_keys:
+        logger.warning(
+            "Firebase: لا يوجد أي متغير بيئة فيه FIREBASE. تأكد أنك أضفت المتغير في نفس الـ Service الذي يشغّل الباك اند (وليس المشروع العام)، ثم Redeploy.",
+        )
+    else:
+        logger.info("Firebase: متغيرات البيئة التي تحتوي FIREBASE: %s", firebase_keys)
+
     firebase_creds = os.getenv("FIREBASE_CREDENTIALS_JSON") or os.getenv("FIREBASE_CREDENTIALS")
     var_name = "FIREBASE_CREDENTIALS_JSON" if os.getenv("FIREBASE_CREDENTIALS_JSON") else "FIREBASE_CREDENTIALS"
 

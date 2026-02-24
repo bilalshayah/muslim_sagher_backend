@@ -28,6 +28,14 @@ def send_firebase_notification(token, title, body, data=None):
         response = messaging.send(message)
         logger.info("Firebase: تم إرسال الإشعار بنجاح، message_id=%s", response)
         return {"success": True, "response": response}
+    except messaging.UnregisteredError:
+        logger.warning(
+            "Firebase: الـ device_token غير صالح أو منتهي (Unregistered). التطبيق يرسل توكن جديد عند تسجيل الدخول."
+        )
+        return {"success": False, "reason": "token_invalid_or_expired"}
+    except messaging.InvalidArgumentError as e:
+        logger.warning("Firebase: صيغة الـ device_token غير صحيحة: %s", e)
+        return {"success": False, "reason": str(e)}
     except Exception as e:
         logger.exception("Firebase: فشل إرسال الإشعار: %s", e)
         return {"success": False, "reason": str(e)}
