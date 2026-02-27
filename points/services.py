@@ -309,7 +309,7 @@ def get_points_summary(user):
 
     # -------- offline --------
     offline_breakdown = {
-        "prayers": 0,
+        "prayer": 0,
         "sunnah": 0,
         "fasting": 0,
         "taraweeh": 0,
@@ -326,7 +326,7 @@ def get_points_summary(user):
     return {
         "total_points": user_points.total_points,
         "breakdown": {
-            "prayers": prayers_points + offline_breakdown["prayers"],
+            "prayers": prayers_points + offline_breakdown["prayer"],
             "sunnah": sunnah_points + offline_breakdown["sunnah"],
             "fasting": fasting_points + offline_breakdown["fasting"],
             "taraweeh": taraweeh_points + offline_breakdown["taraweeh"],
