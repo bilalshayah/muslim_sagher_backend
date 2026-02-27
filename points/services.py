@@ -330,7 +330,7 @@ def get_points_summary(user):
             "sunnah": sunnah_points + offline_breakdown["sunnah"],
             "fasting": fasting_points + offline_breakdown["fasting"],
             "taraweeh": taraweeh_points + offline_breakdown["taraweeh"],
-            "quran": quran_points + offline_breakdown["quran"],
+            "quran": quran_points ,
             "azkar": azkar_points + offline_breakdown["azkar"],
             "points_spent_on_videos": user_points.points_spent_on_videos,
             "points_from_exams": user_points.points_from_exams,
