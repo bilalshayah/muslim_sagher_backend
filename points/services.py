@@ -80,6 +80,8 @@ def add_points(user, points: int):
 
 # ----------------------------------------------------
 # تسجيل صلاة مفروضة
+#   تم تعديل هذه الدالة بحيث لا تزيد النقاط هنا فقط تسجيل الصلاة والتأكد من وقتها
+#  وتتم الزيادة (دالة المزامنة من دون نت)بطلب من مطوري التطبيق   
 # ----------------------------------------------------
 @transaction.atomic
 def mark_prayer(user, prayer_name):
@@ -94,18 +96,18 @@ def mark_prayer(user, prayer_name):
         return activity, 0
 
     # نقاط الصلاة (يمكنك تعديلها)
-    PRAYER_POINTS = 2
+    #PRAYER_POINTS = 2
 
     setattr(activity, prayer_name, True)
-    activity.daily_points += PRAYER_POINTS
+    #activity.daily_points += PRAYER_POINTS
     activity.save()
 
     # new_rewards = 
-    add_points(user, PRAYER_POINTS)
+    #add_points(user, PRAYER_POINTS)
     
 
 
-    return activity, PRAYER_POINTS#,new_rewards
+    return activity#, PRAYER_POINTS
 
 
 # ----------------------------------------------------
@@ -273,6 +275,8 @@ def mark_quran_reading(user, pages):
     return activity, progress, pages, reward#,new_rewards
 # ----------------------------------------------------
 # تفصيل النقاط 
+#تم تعديل الدالة بحيث يأخذ النقاط للصلاة حصرا من السجل فقط بدون المزامنة من دون نت 
+#علما أن زيادة النقاط ستكون ضمن المزامنة من دون نت على طلب مطوري التطبيق
 # ----------------------------------------------------
 # points/services.py
 
@@ -326,7 +330,7 @@ def get_points_summary(user):
     return {
         "total_points": user_points.total_points,
         "breakdown": {
-            "prayers": prayers_points + offline_breakdown["prayer"],
+            "prayers": prayers_points ,#+ offline_breakdown["prayer"],
             "sunnah": sunnah_points + offline_breakdown["sunnah"],
             "fasting": fasting_points + offline_breakdown["fasting"],
             "taraweeh": taraweeh_points + offline_breakdown["taraweeh"],

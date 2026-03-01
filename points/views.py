@@ -59,13 +59,12 @@ class PrayerViewSet(viewsets.ViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # تسجيل الصلاة
-        activity, points = mark_prayer(request.user, prayer)
+        activity = mark_prayer(request.user, prayer)
 
         return Response({
             "status": "success",
             "message": "تم تسجيل الصلاة وإضافة النقاط",
             "data": {
-                "added_points": points,
                 "activity": DailyActivitySerializer(activity).data,
                 
             }
